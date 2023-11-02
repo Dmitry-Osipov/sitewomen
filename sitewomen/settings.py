@@ -37,6 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'women.apps.WomenConfig',  # Добавляем своё приложение, чтобы Django работал с ним. P.s.: по идее достаточно просто
+    # написать имя приложения (women), но в действительности Django обращаясь к пакету women, берёт файл apps.py и
+    # настройки из класса WomenConfig, поэтому мы явно пропишем путь к этому классу.
 ]
 
 MIDDLEWARE = [
