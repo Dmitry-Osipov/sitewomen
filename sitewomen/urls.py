@@ -15,8 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
+from women import views
+
+# Важно заметить, что как только мы добавим хотя бы 1 маршрут, то тестовая стандартная страница Django станет недоступна.
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),  # Первый параметр определяет суффикс URL-адреса, второй - ссылка на функцию
+    # представления, которая будет автоматически вызываться при соответствующем запросе.
+    path('', include('women.urls')),  # С помощью функции include подключаем все маршруты, что были прописаны в пакете
+    # приложения в файле urls.py. Если передать суффикс, то он будет добавлен ко всем маршрутам, что мы подключаем.
 ]
