@@ -1,4 +1,4 @@
-class FourDigitYear:
+class FourDigitYearConverter:
     """
     Класс служит для отлавливания года, который передаётся в функцию представления archive.
     """
