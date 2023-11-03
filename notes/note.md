@@ -378,7 +378,7 @@ http://127.0.0.1:8000/arcgive/2020/
 В частности, в разделе «Registering custom path converters» приведён пример класса FourDigitYearConverter с регулярным выражением для выделения 4 цифр:
 ```python
 # women/converters.py
-class FourDigitYear:
+class FourDigitYearConverter:
     regex = "[0-9]{4}"
  
     def to_python(self, value):
@@ -392,3 +392,16 @@ class FourDigitYear:
 - to_url - для преобразования параметра в формат, требуемый для представлений в URL.
 
 Далее в файле urls.py приложения women зарегистрируем этот конвертер с именем year4 для использования в URL-шаблонах:
+```python
+# women/urls.py
+register_converter(converters.FourDigitYearConverter, "year4")
+```
+Далее в коллекции urlpatterns этого же файла вместо функции re_path следует прописать:
+```python
+# women/urls.py
+urlpatterns = [
+    ...
+    path('archive/<year4:year>/', views.archive),
+]
+```
+При этом параметр year будет автоматически преобразован в целое число благодаря методу to_python класса FourDigitYearConverter. В этом легко убедиться, поставив точку останова в функции представления archive и запустив Django в режиме отладки.
