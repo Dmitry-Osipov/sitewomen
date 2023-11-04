@@ -36,8 +36,10 @@ def categories_by_slug(request, cat_slug):
     запросе.
     """
     if request.GET:  # Словарь GET содержит параметры запроса в формате ключ=значение.
-        print(request.GET)  # <QueryDict: {'name': ['gagrina'], 'type': ['pop']}>
-        # <QueryDict: {'name': ['gagrina'], 'type': ['pop']}>
+        print(request.GET)  # <QueryDict: {'name': ['gagarina'], 'type': ['pop']}>
+        # <QueryDict: {'name': ['gagarina'], 'type': ['pop']}>
+        lst = [f"{key}={val}" for key, val in request.GET.items()]
+        print('|'.join(lst))  # name=gagarina|type=pop
     if request.POST:  # Словарь POST содержит параметры передачи в том же самом классе.
         print(request.POST)
     return HttpResponse(f'<h1>Статьи по категориям</h1><p>slug: {cat_slug}</p>')
