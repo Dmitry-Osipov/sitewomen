@@ -1,5 +1,6 @@
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
 from django.shortcuts import render, redirect
+from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
 
@@ -26,13 +27,15 @@ def index(request):
     передаётся строкой аргументом).
     """
     data = {
-        'title': 'Главная страница',
+        'title': 'главная страница',
         'menu': menu,
         'float': 28.56,
         'lst': [1, 2, 'abc', True],
         'set': {1, 2, 3, 2, 5},
         'dict': {'key_1': 'value_1', 'key_2': 'value_2'},
         'obj': MyClass(10, 20),
+        'some_title': '',
+        'url': slugify('The Main Page'),
     }  # Словарь нужен, чтобы отработали переменные в шаблоне. Переменная в шаблоне - это ключ в словаре внутри функции
     # представления, по которому будет подставлено значение из словаря.
 
