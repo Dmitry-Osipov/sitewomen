@@ -3,6 +3,17 @@ from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
 
+# Опишем главное меню сайта с помощью списка:
+menu = ['О сайте', 'Добавить статью', 'Обратная связь', 'Войти']
+
+class MyClass:
+    """
+    Тестовый класс. Нужен, чтобы проверить отработку шаблонизатора на собственном классе.
+    """
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
 
 # Create your views here.
 def index(request):
@@ -14,13 +25,24 @@ def index(request):
     :return: HttpResponse - экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
     передаётся строкой аргументом).
     """
+    data = {
+        'title': 'Главная страница',
+        'menu': menu,
+        'float': 28.56,
+        'lst': [1, 2, 'abc', True],
+        'set': {1, 2, 3, 2, 5},
+        'dict': {'key_1': 'value_1', 'key_2': 'value_2'},
+        'obj': MyClass(10, 20),
+    }  # Словарь нужен, чтобы отработали переменные в шаблоне. Переменная в шаблоне - это ключ в словаре внутри функции
+    # представления, по которому будет подставлено значение из словаря.
+
     # Простейший пример отдачи шаблона клиенту:
     # t = render_to_string('women/index.html')  # Переменная представляет текстовый вариант шаблона index.html. Прописываем
     # только имя, ибо директория templates находится в одном пакете. Дополнительно не нужно указывать приложение women и
     # директорию templates. Для избежания коллизий в директории templates создадим ещё одну директорию с именем приложения.
     # return HttpResponse(t)
-    # Урежем код с функцией render:
-    return render(request, 'women/index.html')
+    # Урежем код с функцией render.
+    return render(request, 'women/index.html', context=data)
 
 
 def about(request):
@@ -30,7 +52,11 @@ def about(request):
     :param request: HttpRequest - запрос пользователя.
     :return: HttpResponse - HTML-страница с заголовком первого уровня. Информационная страница о сайте.
     """
-    return render(request, 'women/about.html')
+    data = {
+        'title': 'О сайте',
+        'menu': menu,
+    }
+    return render(request, 'women/about.html', context=data)
 
 
 def categories(request, cat_id):
