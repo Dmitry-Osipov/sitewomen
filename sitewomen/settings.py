@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-hgqe908f-+$58m@$(pi^lto%!x%^3&2@du*u9i51(_fhy(-^an'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True  # Переменная служит для более удобной отладки сайта, для боевого сервера её следует отключить.
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1']  # Здесь требуется указывать разрешённые хосты, когда мы будем заселять сайт на сервер.
 
 
 # Application definition
