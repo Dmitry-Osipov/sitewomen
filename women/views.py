@@ -1,10 +1,12 @@
-from django.http import HttpResponse, HttpResponseNotFound, Http404
-from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
+from django.shortcuts import render, redirect
+from django.urls import reverse
+
 
 # Create your views here.
 def index(request):
     """
-    Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/women/.
+    Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/.
 
     :param request: Ссылка на специальный класс, который называется HttpRequest и содержит информацию о запросе. Через
     эту переменную нам доступна вся информация о запросе.
@@ -47,15 +49,21 @@ def categories_by_slug(request, cat_slug):
 
 def archive(request, year):
     """
-    Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/cat/<слаг>/.
+    Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/archive/<год>/.
 
     :param request: HttpRequest - запрос пользователя.
     :param year: int - год, принадлежащий промежутку [1000;9999].
     :return: HttpResponse - HTML-страница с заголовком первого уровня. Пользователь получает год, который вводит в
-    запросе.
+    запросе. Либо HttpResponseRedirect - перенаправление на страницу категорий, если год больше 2023 и меньше 9999.
+    :raises Http404: Http404 - Ошибка 404 на сайте, если год меньше 1000 или больше 9999.
     """
     if year > 2023:
-        raise Http404()  # Когда активизируется механизм обработки 404, мы перехватываем его нашим хэндлером.
+        uri = reverse('cats', args=(year, ))  # uri возвращает нам готовый маршрут, который мы подставляем
+        # в redirect.
+        # return redirect(uri, permanent=True)  # По умолчанию код перенаправления 302. Можно передать конкретный
+        # URL, функцию представления или же имя маршрута, что и является рекомендуемой практикой, ибо это не хардкодинг
+        # (имя перед этим следует прописать в urls.py).
+        return HttpResponseRedirect(uri)  # Для редиректа с кодом 301 требуется возвращать класс HttpResponsePermanentRedirect.
 
     return HttpResponse(f'<h1>Архив по годам</h1><p>year: {year}</p>')
 
