@@ -37,9 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'women.apps.WomenConfig',  # Добавляем своё приложение, чтобы Django работал с ним. P.s.: по идее достаточно просто
+    'women.apps.WomenConfig',  # Добавляем своё приложение, чтобы Django работал с ним. Прим.: по идее достаточно просто
     # написать имя приложения (women), но в действительности Django обращаясь к пакету women, берёт файл apps.py и
-    # настройки из класса WomenConfig, поэтому мы явно пропишем путь к этому классу.
+    # настройки из класса WomenConfig, поэтому мы явно пропишем путь к этому классу. Прим. 2: также чтобы шаблоны
+    # находились, мы прописали здесь само приложение. Если бы мы этого не сделали, то шаблоны не отработали.
 ]
 
 MIDDLEWARE = [
@@ -56,9 +57,9 @@ ROOT_URLCONF = 'sitewomen.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',  # Стандартный шаблонизатор Django.
+        'DIRS': [],  # Этот параметр позволяет описывать нестандартные пути к файлам-шаблонам.
+        'APP_DIRS': True,  # Параметр говорит о том, что внутри приложения надо искать подкаталоги стандартном каталоге templates.
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',

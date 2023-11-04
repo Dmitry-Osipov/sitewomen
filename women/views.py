@@ -1,5 +1,6 @@
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
 from django.shortcuts import render, redirect
+from django.template.loader import render_to_string
 from django.urls import reverse
 
 
@@ -8,12 +9,28 @@ def index(request):
     """
     Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/.
 
-    :param request: Ссылка на специальный класс, который называется HttpRequest и содержит информацию о запросе. Через
-    эту переменную нам доступна вся информация о запросе.
-    :return: Экземпляр класса HttpResponse, который автоматически формирует нужный заголовок ответа (содержимое ответа
+    :param request: HttpRequest - специальный класс, который содержит информацию о запросе. Через эту переменную нам
+    доступна вся информация о запросе.
+    :return: HttpResponse - экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
     передаётся строкой аргументом).
     """
-    return HttpResponse('Страница приложения women.')
+    # Простейший пример отдачи шаблона клиенту:
+    # t = render_to_string('women/index.html')  # Переменная представляет текстовый вариант шаблона index.html. Прописываем
+    # только имя, ибо директория templates находится в одном пакете. Дополнительно не нужно указывать приложение women и
+    # директорию templates. Для избежания коллизий в директории templates создадим ещё одну директорию с именем приложения.
+    # return HttpResponse(t)
+    # Урежем код с функцией render:
+    return render(request, 'women/index.html')
+
+
+def about(request):
+    """
+    Функция представления служит для отображения страницы о сайте.
+
+    :param request: HttpRequest - запрос пользователя.
+    :return: HttpResponse - HTML-страница с заголовком первого уровня. Информационная страница о сайте.
+    """
+    return render(request, 'women/about.html')
 
 
 def categories(request, cat_id):

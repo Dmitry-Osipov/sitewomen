@@ -10,6 +10,7 @@ register_converter(FourDigitYearConverter, 'year4')  # Регистрируем 
 
 urlpatterns = [  # В этой коллекции можно прописать сколько угодно маршрутов для страниц отображения клиенту.
     path('', index, name='home'),
+    path('about/', about, name='about'),
     path('cats/<int:cat_id>/', categories, name='cats_id'),  # По стандартам отрасли следует прописывать слэш в конце суффикса,
     # ибо если этого не сделать, то вместо привычного 127.0.0.1:8000/cats/ нужно будет писать 127.0.0.1:8000/cats, что неудобно.
     path('cats/<slug:cat_slug>/', categories_by_slug, name='cats'),  # Django проверяет маршруты в порядке их записи,
