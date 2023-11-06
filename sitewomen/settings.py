@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
+    'django.contrib.staticfiles',  # Настройка нужна, чтобы Django мог подключить статические файлы к проекту.
     'women.apps.WomenConfig',  # Добавляем своё приложение, чтобы Django работал с ним. Прим.: по идее достаточно просто
     # написать имя приложения (women), но в действительности Django обращаясь к пакету women, берёт файл apps.py и
     # настройки из класса WomenConfig, поэтому мы явно пропишем путь к этому классу. Прим. 2: также чтобы шаблоны
@@ -122,7 +122,28 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# Пока нам хватит только этой настройки, но ниже пропишу другие с подробным описанием:
+STATIC_URL = 'static/'  # префикс URL-адреса для статических файлов.
+# STATIC_ROOT - путь к общей статической папке, формируемой при запуске команды collectstatic (для сбора всей статики в
+# единый каталог при размещении сайта на реальном веб-сервере).
+# STATICFILES_DIRS - список дополнительных (нестандартных путей к статическим файлам, используемых для сбора и для
+# режима отладки). Пример: STATICFILES_DIRS = [ BASE_DIR / 'sitewomen/static' ] - если static в пакете конфигурации.
+# Примечание: при DEBUG = False статика не ищется автоматически в подкаталогах static приложения women
+
+# Все эти константы нужны потому, что существует следующая иерархия статических папок:
+# sitewomen
+#     |
+#     |---sitewomen
+#     |       |
+#     |       \---static - нестандартный путь
+#     |
+#     |---women
+#     |     |
+#     |     |---static - стандартный путь
+#     |     |
+#     |     \---templates
+#     |
+#     \---static - общая папка проекта (сюда потребуется перенести всю статику командой collectstatic при деплое)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

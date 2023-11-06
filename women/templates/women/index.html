@@ -1,31 +1,18 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>{{ title }}</h1>
-
-    <!-- Отображаем категории. Чтобы запретить отображение переменных файла, требуется прописать only. -->
-    {% include 'women/includes/nav.html' only %}
-
-    <!-- Перебираем элементы коллекции искусственной БД. Синтаксис очень похож на обычный цикл for и условие if в Python. -->
-    <ul>
-        {% for post in posts %}
-            {% if post.is_published %}
+    <ul class="list-articles">
+        {% for p in posts %}
+            {% if p.is_published %}
                 <li>
-                    <h2>{{ post.title }}</h2>
-                    <p>{{ post.content }}</p>
-                    <!-- В маршрут post передаём id (ибо в urls.py у нас есть id в пути, как и в аргументах функции). -->
-                    <p><a href="{% url 'post' post.id %}">Читать пост</a></p>
+                    <h2>{{ p.title }}</h2>
+                    {% autoescape off %}
+                        {{ p.content|linebreaks|truncatewords:50 }}
+                    {% endautoescape %}
+                    <div class="clear"></div>
+                    <p class="link-read-post"><a href="{% url 'post' p.id %}">Читать пост</a></p>
                 </li>
-                <!-- У шаблона Django внутри тега for автоматически появляется переменная forloop. -->
-                {% if not forloop.last %}
-                    <hr>
-                {% endif %}
             {% endif %}
         {% endfor %}
     </ul>
-
-    <!-- А если подключить only с параметром, которого нет в проекте, то этот параметр будет доступен в nav
-    (соответственно, только этот параметр и будет доступен при подключении include). -->
-    {% include 'women/includes/nav.html' only with title2='Hello world!' %}
-
 {% endblock %}
