@@ -1,39 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <!-- Все шаблоны следует писать в кодировке UTF-8, ибо это стандарт, начиная с Django 3. -->
-    <meta charset="UTF-8">
-    <!-- Задали свою переменную в шаблоне. Чтобы она отработала, нужно внести словарь в функцию представления. -->
-    <title>{{ title }}</title>
-</head>
-<body>
-<ul>
-    <!-- Маршрут перенаправления на главную страницу. -->
-    <li><a href="{% url 'home' %}">Главная страница</a></li>
-    <!-- Маршрут перенаправления на остальные страницы. -->
-    {% for m in menu %}
-        {% if not forloop.last %}<li>{% else %}<li class="last">{% endif %}
-            <a href="{% url m.url_name %}">{{ m.title }}</a>
-        </li>
-    {% endfor %}
-</ul>
-<h1>{{ title }}</h1>
-<!-- Перебираем элементы коллекции искусственной БД. Синтаксис очень похож на обычный цикл for и условие if в Python. -->
-<ul>
-    {% for post in posts %}
-        {% if post.is_published %}
-            <li>
-                <h2>{{ post.title }}</h2>
-                <p>{{ post.content }}</p>
-                <!-- В маршрут post передаём id (ибо в urls.py у нас есть id в пути, как и в аргументах функции). -->
-                <p><a href="{% url 'post' post.id %}">Читать пост</a></p>
-            </li>
-            <!-- У шаблона Django внутри тега for автоматически появляется переменная forloop. -->
-            {% if not forloop.last %}
-                <hr>
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+
+    <!-- Отображаем категории. Чтобы запретить отображение переменных файла, требуется прописать only. -->
+    {% include 'women/includes/nav.html' only %}
+
+    <!-- Перебираем элементы коллекции искусственной БД. Синтаксис очень похож на обычный цикл for и условие if в Python. -->
+    <ul>
+        {% for post in posts %}
+            {% if post.is_published %}
+                <li>
+                    <h2>{{ post.title }}</h2>
+                    <p>{{ post.content }}</p>
+                    <!-- В маршрут post передаём id (ибо в urls.py у нас есть id в пути, как и в аргументах функции). -->
+                    <p><a href="{% url 'post' post.id %}">Читать пост</a></p>
+                </li>
+                <!-- У шаблона Django внутри тега for автоматически появляется переменная forloop. -->
+                {% if not forloop.last %}
+                    <hr>
+                {% endif %}
             {% endif %}
-        {% endif %}
-    {% endfor %}
-</ul>
-</body>
-</html>
+        {% endfor %}
+    </ul>
+
+    <!-- А если подключить only с параметром, которого нет в проекте, то этот параметр будет доступен в nav
+    (соответственно, только этот параметр и будет доступен при подключении include). -->
+    {% include 'women/includes/nav.html' only with title2='Hello world!' %}
+
+{% endblock %}

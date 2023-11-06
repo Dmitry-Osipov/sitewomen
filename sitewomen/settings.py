@@ -58,7 +58,10 @@ ROOT_URLCONF = 'sitewomen.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',  # Стандартный шаблонизатор Django.
-        'DIRS': [],  # Этот параметр позволяет описывать нестандартные пути к файлам-шаблонам.
+        'DIRS': [ # Этот параметр позволяет описывать нестандартные пути к файлам-шаблонам.
+            BASE_DIR / 'templates',  # константа BASE_DIR отвечает за путь к source root, а далее указываем конкретный
+            # путь внутри sitewomen (которая src).
+        ],
         'APP_DIRS': True,  # Параметр говорит о том, что внутри приложения надо искать подкаталоги стандартном каталоге templates.
         'OPTIONS': {
             'context_processors': [
