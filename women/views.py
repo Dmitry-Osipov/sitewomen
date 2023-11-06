@@ -22,6 +22,12 @@ data_db = [  # Имитируем набор записей из БД списк
     {'id': 3, 'title': 'Джулия Робертс', 'content': 'Биография Джулии Робертс', 'is_published': True},
 ]
 
+cats_db = [  # Коллекция представляет список категорий - тоже имитация таблицы БД.
+    {'id': 1, 'name': 'Актрисы'},
+    {'id': 2, 'name': 'Певицы'},
+    {'id': 3, 'name': 'Спортсменки'},
+]
+
 
 # Create your views here.
 def index(request):
@@ -37,6 +43,7 @@ def index(request):
         'title': 'Главная страница',
         'menu': menu,
         'posts': data_db,
+        'cat_selected': 0,
     }
 
     return render(request, 'women/index.html', context=data)
@@ -65,6 +72,24 @@ def show_post(request, post_id):
     :return: HttpResponse - текст с запрашиваемым id записи.
     """
     return HttpResponse(f'Отображение статьи с id = {post_id}')
+
+
+def show_category(request, cat_id):
+    """
+    Функция представления отвечает за отображение выбранной категории.
+
+    :param request: HttpRequest - запрос пользователя.
+    :param cat_id: int - уникальный идентификатор категории.
+    :return: HttpResponse - временная заглушка.
+    """
+    data = {
+        'title': 'Отображение по рубрикам',
+        'menu': menu,
+        'posts': data_db,
+        'cat_selected': cat_id,
+    }
+
+    return render(request, 'women/index.html', context=data)
 
 
 def add_page(request):
