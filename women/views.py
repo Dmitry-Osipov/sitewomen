@@ -4,23 +4,18 @@ from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
 
-# Опишем главное меню сайта с помощью списка:
-menu = ['О сайте', 'Добавить статью', 'Обратная связь', 'Войти']
+# Опишем главное меню сайта с помощью списка из словарей с маршрутом к соответствующей странице:
+menu = [{'title': 'О сайте', 'url_name': 'about'},
+        {'title': 'Добавить статью', 'url_name': 'add_page'},
+        {'title': 'Обратная связь', 'url_name': 'contact'},
+        {'title': 'Войти', 'url_name': 'login'},
+]
 
-data_db = [  # Имитируем набор записей из БД списком.
+data_db = [  # Имитируем набор записей из БД списком из словарей.
     {'id': 1, 'title': 'Анджелина Джоли', 'content': 'Биография Анджелины Джоли', 'is_published': True},
     {'id': 2, 'title': 'Марго Робби', 'content': 'Биография Марго Робби', 'is_published': False},
     {'id': 3, 'title': 'Джулия Робертс', 'content': 'Биография Джулии Робертс', 'is_published': True},
 ]
-
-
-class MyClass:
-    """
-    Тестовый класс. Нужен, чтобы проверить отработку шаблонизатора на собственном классе.
-    """
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
 
 
 # Create your views here.
@@ -36,23 +31,9 @@ def index(request):
     data = {
         'title': 'Главная страница',
         'menu': menu,
-        'float': 28.56,
-        'lst': [1, 2, 'abc', True],
-        'set': {1, 2, 3, 2, 5},
-        'dict': {'key_1': 'value_1', 'key_2': 'value_2'},
-        'obj': MyClass(10, 20),
-        'some_title': '',
-        'url': slugify('The Main Page'),
         'posts': data_db,
-    }  # Словарь нужен, чтобы отработали переменные в шаблоне. Переменная в шаблоне - это ключ в словаре внутри функции
-    # представления, по которому будет подставлено значение из словаря.
+    }
 
-    # Простейший пример отдачи шаблона клиенту:
-    # t = render_to_string('women/index.html')  # Переменная представляет текстовый вариант шаблона index.html. Прописываем
-    # только имя, ибо директория templates находится в одном пакете. Дополнительно не нужно указывать приложение women и
-    # директорию templates. Для избежания коллизий в директории templates создадим ещё одну директорию с именем приложения.
-    # return HttpResponse(t)
-    # Урежем код с функцией render.
     return render(request, 'women/index.html', context=data)
 
 
@@ -70,6 +51,59 @@ def about(request):
     return render(request, 'women/about.html', context=data)
 
 
+def show_post(request, post_id):
+    """
+    Функция представления служит для отображения конкретного поста о женщине.
+
+    :param request: HttpRequest - запрос пользователя.
+    :param post_id: int - уникальный идентификатор записи.
+    :return: HttpResponse - текст с запрашиваемым id записи.
+    """
+    return HttpResponse(f'Отображение статьи с id = {post_id}')
+
+
+def add_page(request):
+    """
+    Функция представления служит для добавления статьи про известную женщину.
+
+    :param request: HttpRequest - запрос пользователя.
+    :return: HttpResponse - текст про добавление статьи.
+    """
+    return HttpResponse('Добавление статьи')
+
+
+def contact(request):
+    """
+    Функция представления служит для обратной связи разработчику сайта.
+
+    :param request: HttpRequest - запрос пользователя.
+    :return: HttpResponse - текст про обратную связь.
+    """
+    return HttpResponse('Обратная связь')
+
+
+def login(request):
+    """
+    Функция представления служит для авторизации пользователя на сайте.
+
+    :param request: HttpRequest - запрос пользователя.
+    :return: HttpResponse - текст про авторизацию.
+    """
+    return HttpResponse('Авторизация')
+
+
+def page_not_found(request, exception):
+    """
+    Функция представления служит для отображения нужной нам страницы при 404 ошибке.
+
+    :param request: HttpRequest - запрос от пользователя.
+    :param exception: HttpRequest - 404 ошибка пользователя.
+    :return: HttpResponseNotFound - сообщение об ошибке.
+    """
+    return HttpResponseNotFound('<h1>Страница не найдена</h1>')
+
+
+# Все функции представления ниже нужны только для отображения базовых возможностей Django.
 def categories(request, cat_id):
     """
     Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/cat/<число>/.
@@ -122,12 +156,41 @@ def archive(request, year):
     return HttpResponse(f'<h1>Архив по годам</h1><p>year: {year}</p>')
 
 
-def page_not_found(request, exception):
+class MyClass:
     """
-    Функция представления служит для отображения нужной нам страницы при 404 ошибке.
+    Тестовый класс. Нужен, чтобы проверить отработку шаблонизатора на собственном классе.
+    """
 
-    :param request: HttpRequest - запрос от пользователя.
-    :param exception: HttpRequest - 404 ошибка пользователя.
-    :return: HttpResponseNotFound - сообщение об ошибке.
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+
+def main_filters(request):
     """
-    return HttpResponseNotFound('<h1>Страница не найдена</h1>')
+    Функция представления отвечает за демонстрацию основных фильтров шаблонизатора Django.
+
+    :param request: HttpRequest - запрос пользователя.
+    :return: HttpResponse - HTML-страница с примерами работы различных стандартных фильтров шаблонизатора.
+    """
+    data = {
+        'title': 'Страница о фильтрах',
+        'menu': menu,
+        'float': 28.56,
+        'lst': [1, 2, 'abc', True],
+        'set': {1, 2, 3, 2, 5},
+        'dict': {'key_1': 'value_1', 'key_2': 'value_2'},
+        'obj': MyClass(10, 20),
+        'some_title': '',
+        'url': slugify('The Main Page'),
+        'posts': data_db,
+    }  # Словарь нужен, чтобы отработали переменные в шаблоне. Переменная в шаблоне - это ключ в словаре внутри функции
+    # представления, по которому будет подставлено значение из словаря.
+
+    # Простейший пример отдачи шаблона клиенту:
+    # t = render_to_string('women/index.html')  # Переменная представляет текстовый вариант шаблона index.html. Прописываем
+    # только имя, ибо директория templates находится в одном пакете. Дополнительно не нужно указывать приложение women и
+    # директорию templates. Для избежания коллизий в директории templates создадим ещё одну директорию с именем приложения.
+    # return HttpResponse(t)
+    # Урежем код с функцией render.
+    return render(request, 'women/main_filters.html', context=data)
