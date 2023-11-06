@@ -1522,3 +1522,213 @@ python3 manage.py runserver --insecure
 python3 manage.py collectstatic
 ```
 и, затем, берутся из этой папки.
+### **15. Пользовательские теги шаблонов. Декораторы simple_tag и inclusion_tag.**
+Увидим, как можно создавать свои собственные шаблонные теги и использовать их при формировании HTML-страниц. Для этого Django позволяет использовать два вида [пользовательских тегов](https://docs.djangoproject.com/en/4.2/howto/custom-template-tags/):
+- simple tags – простые теги;
+- inclusion tags – включающие теги.
+
+#### **Simple Tags.**
+Вначале мы создадим простой тег, который будет возвращать список категорий и использоваться непосредственно в шаблоне. Согласно документации теги должны располагаться в подкаталоге templatetags каталога приложения women и являться пакетом, то есть, содержать файл __init__.py. Сделаем это. Далее, нам нужно добавить в эту папку еще один python-файл, в котором будем прописывать логику нового тега. Файл назовем каким-нибудь понятным именем, например, women_tags. Импортируем сюда модуль template для работы с шаблонами и модуль views:
+```python
+# women/women_tags.py
+from django import template
+from ..views import *
+```
+Следующим шагом нам нужно создать экземпляр класса Library, через который происходит регистрация собственных шаблонных тегов:
+```python
+# women/women_tags.py
+register = template.Library()
+```
+И, далее, определим функцию, которая будет выполняться при вызове нашего тега из шаблона. Так как нам нужны будут списки категорий, то функция будет достаточно простой:
+```python
+# women/women_tags.py
+def get_categories():
+    return cats_db
+```
+Название функции get_categories мы придумываем сами. Соответственно, в файле women/views.py мы пропишем коллекцию cats_db следующим образом:
+```python
+# women/views.py
+cats_db = [
+    {'id': 1, 'name': 'Актрисы'},
+    {'id': 2, 'name': 'Певицы'},
+    {'id': 3, 'name': 'Спортсменки'},
+]
+```
+Теперь, чтобы связать функцию get_categories с тегом, или, превратить эту функцию в тег, используется специальный декоратор, доступный через переменную register:
+```python
+# women/women_tags.py
+@register.simple_tag()
+def get_categories():
+    return cats_db
+```
+Все, мы только что создали свой простой пользовательский тег для использования его в шаблонах.
+
+Давайте им воспользуемся. Перейдем в базовый шаблон base.html и вначале выполним загрузку тегов, определенных в файле women_tags:
+```html
+<!-- base.html -->
+{% load women_tags %}
+```
+После этого в шаблоне (и во всех его дочерних шаблонах) доступен тег по имени get_categories. Однако если сейчас обновить главную страницу, то получим ошибку, что women_tags не зарегистрирован. Это связано с тем, что после добавления нового пакета templatetags и файла women_tags.py необходимо перезапустить тестовый веб-сервер, чтобы он подхватил изменения в проекте сайта. После перезагрузки никаких ошибок не появляется.
+
+Далее, в месте вывода рубрик давайте просто запишем наш новый сформированный тег:
+```html
+<!-- base.html -->
+...
+{% get_categories %}
+...
+```
+и при обновлении главной страницы увидим отображение списка. Это говорит о том, что все работает, тег возвращает нужные данные. Но как нам теперь перебрать элементы этого объекта? Подставить в цикл тег get_categories мы не можем, т.к. это не переменная, а тег шаблона. Для этого в Django в тегах можно использовать специальное ключевое слово as, которое сформирует ссылку на данные тега. В нашем случае это можно записать так:
+```html
+<!-- base.html -->
+...
+{% get_categories as categories %}
+...
+```
+Сформируется переменная categories, которую уже можно использовать в теге цикла for. Кстати, при обновлении страницы, тег get_categories уже не будет отображаться на странице, т.к. изменилось его поведение – данные передаются в переменную (точнее ссылку).
+
+Теперь мы можем перебрать список categories и отобразить категории в шаблоне:
+```html
+<!-- base.html -->
+{% get_categories as categories %}
+ 
+<ul id="leftchapters">
+    <li class="selected">Все категории</li>
+    
+        {% for cat in categories %}
+            <li><a href="#">{{ cat.name }}</a></li>
+        {% endfor %}
+        
+        <li class="share">
+        <p >Наш канал</p>
+        <a class="share-yt" href="..." target="_blank" rel="nofollow"></a>
+    </li>
+</ul>
+```
+Давайте добавим URL-адреса для категорий. Для этого в файле urls.py пропишем следующий маршрут с именем category:
+```python
+# women/urls.py
+urlpatterns = [
+    path('', index, name='home'),
+    ...
+    path('category/<int:cat_id>/', show_category, name='category'),
+]
+```
+И добавим функцию представления show_category для этого маршрута в файле views.py:
+```python
+# women/views.py
+def show_category(request, cat_id):
+    """Функция-заглушка"""
+    return index(request)
+```
+Пока она у нас ничего делать не будет. После всех этих действий в шаблоне base.html URL-адреса для категорий можно сформировать с помощью тега url следующим образом:
+```html
+<!-- base.html -->
+{% for cat in categories %}
+    <li><a href="{% url 'category' cat.id %}">{{ cat.name }}</a></li>
+{% endfor %}
+```
+Все, с помощью простого пользовательского тега мы получаем список категорий и отображаем их в HTML-документе. Также, если нам нужно определить другое имя тега get_categories, то для этого в декораторе register.simple_tag достаточно указать параметр name с другим именем, например, так:
+```python
+# women/women_tags.py
+@register.simple_tag(name='getcats')
+def get_categories():
+    return cats_db
+```
+И, далее, в шаблоне base.html следует использовать имя 'getcats':
+```html
+<!-- base.html -->
+{% getcats as categories %}
+```
+#### **Inclusion Tags.**
+Второй тип пользовательских тегов – включающий тег, позволяет дополнительно формировать свой собственный шаблон на основе некоторых данных и возвращать фрагмент HTML-страницы. Давайте посмотрим, как с ним можно работать.
+
+Сначала в файле women_tags.py добавим функцию для реализации этого второго тега и, так как она будет возвращать полноценный шаблон, то назовем ее show_categories:
+```python
+# women/women_tags.py
+@register.inclusion_tag('women/list_categories.html')
+def show_categories():
+    cats = cats_db
+    return {"cats": cats}
+```
+Здесь в функции происходит формирование и возврат словаря с необходимыми данными для шаблона list_categories.html. То есть, в шаблоне list_categories.html будет доступна переменная cats со списком всех рубрик. Именно этот сформированный шаблон и будет возвращаться данным тегом.
+
+Осталось прописать сам шаблон. Разместим его среди всех остальных шаблонов (хотя, при необходимости, можно создать отдельный подкаталог и размещать шаблоны тегов в нем). И скопируем в него следующий фрагмент шаблона из base.html:
+```html
+<!-- list_categories.html -->
+{% for cat in cats %}
+    <li><a href="{% url 'category' cat.id %}">{{ cat.name }}</a></li>
+{% endfor %}
+```
+Здесь переменную categories заменим на cats, так как именно ее мы передаем как параметр этому шаблону, и наш тег готов. Осталось вызвать его в базовом шаблоне base.html и вместо вывода рубрик, записать тег:
+```html
+<!-- base.html -->
+{% show_categories %}
+```
+Обновляем главную страницу сайта и видим, что все работает – рубрики выводятся с помощью нашего включающего тега. (При необходимости перезапустите тестовый веб-сервер).
+#### **Передача параметров пользовательским тегам.**
+Все наши теги могут принимать некоторые параметры, которые расширяют их функциональность. Давайте этим воспользуемся и дополнительно будем передавать параметр с номером выбранной рубрики. Для этого в функции тега show_categories пропишем параметр cat_selected:
+```python
+# women/women_tags.py
+@register.inclusion_tag('women/list_categories.html')
+def show_categories(cat_selected=0):
+    cats = cats_db
+    return {"cats": cats, "cat_selected": cat_selected}
+```
+И изменим шаблон list_categories.html следующим образом:
+```html
+<!-- list_categories.html -->
+{% for cat in cats %}
+    {% if cat.id == cat_selected %}
+        <li class="selected">{{cat.name}}</li>
+    {% else %}
+        <li><a href="{% url 'category' cat.id %}">{{cat.name}}</a></li>
+    {% endif %}
+{% endfor %}
+```
+Теперь наш тег show_categories может принимать один параметр. В шаблоне base.html пропишем его вызов следующим образом:
+```html
+<!-- base.html -->
+{% show_categories cat_selected %} 
+
+    или
+
+{% show_categories cat_selected_id=cat_selected %}
+```
+Соответственно параметр cat_selected необходимо передать в шаблон base.html. Для этого откорректируем функцию представления index:
+```python
+# women/views.py
+def index(request):
+    data = {
+        'title': 'Главная страница',
+        'menu': menu,
+        'posts': data_db,
+        'cat_selected': 0,  # не обязательная строчка
+    }
+ 
+    return render(request, 'women/index.html', context=data)
+```
+И функцию представления show_category:
+```python
+# women/views.py
+def show_category(request, cat_id):
+    data = {
+        'title': 'Отображение по рубрикам',
+        'menu': menu,
+        'posts': data_db,
+        'cat_selected': cat_id,
+    }
+ 
+    return render(request, 'women/index.html', context=data)
+```
+Если теперь запустить веб-сервер и щелкать по рубрикам, то они будут подсвечиваться выделенным синим цветом. Однако первая рубрика всегда остается выделенной. Давайте это тоже поправим и в шаблоне base.html пропишем следующее условие:
+```html
+<!-- base.html -->
+<ul id="leftchapters">
+    {% if cat_selected == 0 or cat_selected is None %}
+        <li class="selected">Все категории</li>
+    {% else %}
+        <li><a href="{% url 'home' %}">Все категории</a></li>
+    {% endif %}
+    ...
+</ul>
+```
