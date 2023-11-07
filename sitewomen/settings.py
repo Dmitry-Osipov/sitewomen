@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',  # Настройка нужна, чтобы Django мог подключить статические файлы к проекту.
+    'django_extensions',  # Добавил стороннее одноимённое расширение для оболочки Django.
     'women.apps.WomenConfig',  # Добавляем своё приложение, чтобы Django работал с ним. Прим.: по идее достаточно просто
     # написать имя приложения (women), но в действительности Django обращаясь к пакету women, берёт файл apps.py и
     # настройки из класса WomenConfig, поэтому мы явно пропишем путь к этому классу. Прим. 2: также чтобы шаблоны
