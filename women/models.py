@@ -22,6 +22,19 @@ class Women(models.Model):
     time_update = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(default=True)
 
+    class Meta:
+        """
+        Вложенный класс предназначен для фильтрации данных.
+
+        Атрибуты:\n
+        ordering - list - определяет порядок сортировки выбранных записей модели;\n
+        indexes - list - определяет столбцы, записи которых должны быть пронумерованы.
+        """
+        ordering = ['-time_create']
+        indexes = [
+            models.Index(fields=['-time_create']),
+        ]
+
     def __str__(self):
         """
         Метод служит для корректного отображения записи из БД.
