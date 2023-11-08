@@ -2417,3 +2417,158 @@ def index(request):
     return render(request, 'women/index.html', context=data)
 ```
 Обновляем главную страницу сайта и видим, что теперь посты доступны по слагу, а не идентификатору. Этот пример показывает как в Django легко и просто можно менять URL-адреса и вместо id использовать другие поля, в частности, слаг. При этом в шаблоне мы использовали метод get_absolute_url() модели Women для формирования корректного URL-адреса. Кроме того, Django автоматически защищает такие адреса от SQL-инъекций, когда злоумышленник пытается выполнить SQL-запрос, прописывая его в адресной строке браузера. Благодаря всем этим мелочам, которые берет на себя фреймворк, даже начинающий веб-мастер может конструировать вполне безопасные сайты с богатым функционалом.
+### **22. Создание пользовательского менеджера модели.**
+Ранее мы в функции представления index читали все опубликованные посты из БД и отображали их в виде списка на главной странице. При этом использовался менеджер objects модели Women. Между тем фреймворк Django позволяет нам в моделях создавать свои собственные менеджеры. И мы с вами определим такой, который будет возвращать только опубликованные статьи. Для нашего проекта это будет полезное дополнение.
+
+Перейдем в файл models.py приложения women и объявим новый класс, который будет описывать менеджер для моделей, следующим образом:
+```python
+# women/models.py
+import ...
+
+class PublishedModel(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_published=1)
+...
+```
+Мы здесь объявляем метод get_queryset(), который вызывается для получения списка записей из таблиц БД с помощью этого менеджера. Соответственно, в самом методе идет обращение к аналогичному методу базового класса, но с отбором только опубликованных записей.
+
+Затем, в классе модели Women необходимо создать объект этого класса менеджера, например, так:
+```python
+# women/models.py
+class Women(models.Model):
+    ...
+    objects = models.Manager()
+    published = PublishedModel()
+ 
+    def get_absolute_url(self):
+        return reverse('post', kwargs={'post_slug': self.slug})
+ 
+    def __str__(self):
+        return self.title
+```
+Обратите внимание, что мы здесь также явно создали стандартный менеджер objects. Дело в том, что когда в модели не определено никаких менеджеров записей, то автоматически создается objects. Как только мы определили свой собственный, то objects перестает существовать. Если он нужен, то следует также явно его прописать в модели.
+
+Теперь в функции представления index() мы можем получать список опубликованных постов, используя новый менеджер published:
+```python
+# women/views.py
+def index(request):
+    posts = Women.published.all()
+    
+    data = {
+        'title': 'Главная страница',
+        'menu': menu,
+        'posts': posts,
+    }
+ 
+    return render(request, 'women/index.html', context=data)
+```
+А в шаблоне index.html условие проверки публикации можно убрать.
+
+Далее, в функции представления show_category() пока будем читать все опубликованные статьи:
+```python
+# women/views.py
+def show_category(request, cat_id):
+    data = {
+        'title': 'Отображение по рубрикам',
+        'menu': menu,
+        'posts': Women.published.all(),
+        'cat_selected': cat_id,
+    }
+ 
+    return render(request, 'women/index.html', context=data)
+```
+И удалим из файла views.py коллекцию data_db, так как теперь вся информация по постам берется непосредственно из БД.
+
+Вот так, достаточно просто можно создавать свои собственные менеджеры в моделях для получения списка записей по требуемым критериям.
+
+Для наглядности, я наполю таблицу women более полным содержимым биографий известных женщин.
+#### **Перечисляемое поле.**
+Во второй части этого занятия мы с вами добавим класс перечисления для поля is_published. Смотрите, сейчас нам приходится прописывать 0, если статья не опубликована (черновик) и 1, если опубликована. Но оперировать числами не очень удобно, так как легко забыть, что значит 1 и 0 в данном случае. Гораздо лучше использовать осмысленные имена. Мало того, [в Django имеются классы, которые автоматизируют процесс создания подобных перечислений специально для моделей](https://docs.djangoproject.com/en/4.2/ref/models/fields/#enumeration-types):
+- IntegerChoices – для числовых наборов;
+- TextChoices – для строковых наборов.
+
+Давайте воспользуемся классом IntegerChoices для определения осмысленных имен опубликованных и черновых статей. Для этого в модели Women вначале объявим класс с именем Status, а затем применим его к полю is_published следующим образом:
+```python
+# women/models.py
+class Women(models.Model):
+    class Status(models.IntegerChoices):
+        DRAFT = 0, 'Черновик'
+        PUBLISHED = 1, 'Опубликовано'
+ 
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, db_index=True, unique=True)
+    content = models.TextField(blank=True)
+    time_create = models.DateTimeField(auto_now_add=True)
+    time_update = models.DateTimeField(auto_now=True)
+    is_published = models.BooleanField(choices=Status.choices, default=Status.DRAFT)
+ 
+    objects = models.Manager()
+    published = PublishedModel()
+ 
+    class Meta:
+        ordering = ['-time_create']
+        indexes = [ 
+            models.Index(fields=['-time_create']),
+        ]
+ 
+    def get_absolute_url(self):
+        return reverse('post', kwargs={'post_slug': self.slug})
+ 
+    def __str__(self):
+        return self.title
+```
+Как видите, класс Status наследуется от класса IntegerChoices, который определяет своего рода перечисление на уровне фреймворка Django. В этом перечислении у нас два элемента с именами DRAFT и PUBLISHED. Эти атрибуты должны быть описаны как кортежи, состоящие из двух элементов: первое значение – это то, которое записывается в БД, а второе – это его имя (метка). В частности, имена используются в админ-панели Django, о которой мы еще будем говорить.
+
+После создания класс Status будет содержать атрибуты DRAFT и PUBLISHED со значениями 0 и 1, а также ряд вспомогательных атрибутов. Затем, с помощью параметра choices мы задаем виджет выбора значений для поля is_published с начальным значением (параметр default). Этот виджет будет использоваться при отображении данного поля на формах (о которых речь пойдет позже).
+
+Так как модель Women поменялась, то нужно создать миграцию для изменения таблицы в БД и применить:
+```shell
+python3 manage.py makemigrations
+python3 manage.py migrate
+```
+Посмотрим, как это все будет работать. Перейдем в консоль фреймворка Django:
+```shell
+python3 manage.py shell_plus --print-sql
+```
+После этого прочитаем список всех статей (в оболочке shell_plus модели импортируются автоматически):
+```shell
+w = Women.objects.all()
+```
+и установим поле is_published в значение PUBLISHED:
+```shell
+w.update(is_published=Women.Status.PUBLISHED)
+```
+Если отдельно проанализировать класс Status, то, во-первых, он имеет атрибут choices со списком кортежей:
+```shell
+Women.Status.choices
+```
+увидим:
+```shell
+[(0, 'Черновик'), (1, 'Опубликовано')]
+```
+Атрибут values со списком значений:
+```shell
+Women.Status.values
+```
+получим:
+```shell
+[0, 1]
+```
+и атрибут labels со списком меток:
+```shell
+Women.Status.labels
+```
+возвратит список:
+```shell
+['Черновик', 'Опубликовано']
+```
+Благодаря введению класса-перечисления код стал несколько понятнее при использовании поля is_published.
+
+Выйдем из консоли и в менеджере PublishedModel также воспользуемся введенным перечислением:
+```python
+# women/models.py
+class PublishedModel(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_published=Women.Status.PUBLISHED)
+```
+В результате у нас с вами получился более красивый программный код.
