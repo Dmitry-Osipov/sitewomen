@@ -1,8 +1,10 @@
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
+
+from .models import *
 
 # Опишем главное меню сайта с помощью списка из словарей с маршрутом к соответствующей странице:
 menu = [{'title': 'О сайте', 'url_name': 'about'},
@@ -39,10 +41,12 @@ def index(request):
     :return: HttpResponse - экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
     передаётся строкой аргументом).
     """
+    posts = Women.objects.filter(is_published=1)
+
     data = {
         'title': 'Главная страница',
         'menu': menu,
-        'posts': data_db,
+        'posts': posts,
         'cat_selected': 0,
     }
 
@@ -63,15 +67,25 @@ def about(request):
     return render(request, 'women/about.html', context=data)
 
 
-def show_post(request, post_id):
+def show_post(request, post_slug):
     """
     Функция представления служит для отображения конкретного поста о женщине.
 
     :param request: HttpRequest - запрос пользователя.
-    :param post_id: int - уникальный идентификатор записи.
-    :return: HttpResponse - текст с запрашиваемым id записи.
+    :param post_slug: str - уникальный идентификатор записи.
+    :return: HttpResponse - запись из БД про известную женщину.
+    :raises Http404: ошибка 404 на сайте, если статья с нужным id не была найдена в БД.
     """
-    return HttpResponse(f'Отображение статьи с id = {post_id}')
+    post = get_object_or_404(Women, slug=post_slug)
+
+    data = {
+        'title': post.title,
+        'menu': menu,
+        'post': post,
+        'cat_selected': 1,
+    }
+
+    return render(request, 'women/post.html', context=data)
 
 
 def show_category(request, cat_id):
@@ -173,7 +187,7 @@ def archive(request, year):
     :param year: int - год, принадлежащий промежутку [1000;9999].
     :return: HttpResponse - HTML-страница с заголовком первого уровня. Пользователь получает год, который вводит в
     запросе. Либо HttpResponseRedirect - перенаправление на страницу категорий, если год больше 2023 и меньше 9999.
-    :raises Http404: Http404 - Ошибка 404 на сайте, если год меньше 1000 или больше 9999.
+    :raises Http404: ошибка 404 на сайте, если год меньше 1000 или больше 9999.
     """
     if year > 2023:
         uri = reverse('cats', args=(year, ))  # uri возвращает нам готовый маршрут, который мы подставляем

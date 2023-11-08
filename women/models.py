@@ -1,4 +1,6 @@
 from django.db import models
+from django.urls import reverse
+
 
 # Create your models here.
 class Women(models.Model):
@@ -9,6 +11,8 @@ class Women(models.Model):
     id - PRIMARY KEY, INTEGER, AUTOINCREMENT - главный ключ, формируется автоматически;\n
     title - VARCHAR - обязательное текстовое поле (содержит одну сроку) заголовка (имя женщины), максимальная длина -
     255 символов;\n
+    slug - TEXT - обязательное уникальное (unique=True) индексируемое (db_index=True, нужно, чтобы был более быстрый
+    выбор статей из БД) поле - уникальный идентификатор записи;\n
     content - TEXT - необязательное (blank=True) текстовое поле (содержит целое текстовое поле) c содержимым статьи;\n
     time_create - DATETIME - обязательное поле, содержащее время добавления записи в БД, во время первого появления
     конкретной записи автоматически проставляет время (auto_now_add=True);\n
@@ -17,6 +21,7 @@ class Women(models.Model):
     is_published - BOOLEAN - обязательное поле показывает, опубликована ли статья, по умолчанию все статьи публикуются.
     """
     title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
     content = models.TextField(blank=True)
     time_create = models.DateTimeField(auto_now_add=True)
     time_update = models.DateTimeField(auto_now=True)
@@ -42,3 +47,11 @@ class Women(models.Model):
         :return: str - имя актрисы.
         """
         return self.title
+
+    def get_absolute_url(self):
+        """
+        Метод формирует URL-адрес для каждой конкретной записи.
+
+        :return: str - URL-адрес конкретной записи.
+        """
+        return reverse('post', kwargs={'post_slug': self.slug})
