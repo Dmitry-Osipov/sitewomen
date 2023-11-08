@@ -3,6 +3,23 @@ from django.urls import reverse
 
 
 # Create your models here.
+class PublishedManager(models.Manager):
+    """
+    Класс описывает менеджер моделей. Через него модель будет возвращать только опубликованные статьи.\n
+    Т.е. доступ к возвращаемому параметру будет доступен в конкретной модели с синтаксисом:\n
+    <название модели>.<переменная менеджера в модели>.<метод>\n
+    Пример:\n
+    Women.published.all()
+    """
+    def get_queryset(self):
+        """
+        Метод возвращает опубликованные статьи.
+
+        :return: QuerySet - коллекция содержит только те записи, у которых флаг публикации = True.
+        """
+        return super().get_queryset().filter(is_published=Women.Status.PUBLISHED)
+
+
 class Women(models.Model):
     """
     Класс является связкой для ORM с одноимённой таблицей в БД. Наследование от Model делает наш класс классом модели.
@@ -11,21 +28,36 @@ class Women(models.Model):
     id - PRIMARY KEY, INTEGER, AUTOINCREMENT - главный ключ, формируется автоматически;\n
     title - VARCHAR - обязательное текстовое поле (содержит одну сроку) заголовка (имя женщины), максимальная длина -
     255 символов;\n
-    slug - TEXT - обязательное уникальное (unique=True) индексируемое (db_index=True, нужно, чтобы был более быстрый
+    slug - SLUG - обязательное уникальное (unique=True) индексируемое (db_index=True, нужно, чтобы был более быстрый
     выбор статей из БД) поле - уникальный идентификатор записи;\n
     content - TEXT - необязательное (blank=True) текстовое поле (содержит целое текстовое поле) c содержимым статьи;\n
     time_create - DATETIME - обязательное поле, содержащее время добавления записи в БД, во время первого появления
     конкретной записи автоматически проставляет время (auto_now_add=True);\n
     time_update - DATETIME - обязательное поле, содержащее время обновление записи в БД, автоматически обновляет время
     изменения конкретной записи в БД (auto_now=True);\n
-    is_published - BOOLEAN - обязательное поле показывает, опубликована ли статья, по умолчанию все статьи публикуются.
+    is_published - BOOLEAN - обязательное поле показывает, опубликована ли статья, по умолчанию все статьи не
+    публикуются;\n
+    objects - стандартный менеджер модели - при добавлении собственного менеджера, атрибут objects автоматически
+    затирается, так что следует прописать его явно;\n
+    published - кастомный менеджер модели.
     """
+    class Status(models.IntegerChoices):
+        """
+        Вложенный класс предназначен для определения осмысленных имён значений, содержащихся в коллекции класса choices.
+        Т.е. список choices будет состоять из кортежей, которые содержат значение(int) + метка для пользователя(str).
+        """
+        DRAFT = 0, 'Черновик'
+        PUBLISHED = 1, 'Опубликовано'
+
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, db_index=True)
     content = models.TextField(blank=True)
     time_create = models.DateTimeField(auto_now_add=True)
     time_update = models.DateTimeField(auto_now=True)
-    is_published = models.BooleanField(default=True)
+    is_published = models.BooleanField(choices=Status.choices, default=Status.DRAFT)
+
+    objects = models.Manager()
+    published = PublishedManager()
 
     class Meta:
         """

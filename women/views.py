@@ -41,7 +41,7 @@ def index(request):
     :return: HttpResponse - экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
     передаётся строкой аргументом).
     """
-    posts = Women.objects.filter(is_published=1)
+    posts = Women.published.all()
 
     data = {
         'title': 'Главная страница',
