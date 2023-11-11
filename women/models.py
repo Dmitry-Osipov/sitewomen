@@ -41,6 +41,8 @@ class Women(models.Model):
     менеджера записей "posts", - внешний ключ таблицы категорий - в БД будет cat_id - "_id" Django добавляет
     самостоятельно. Причём при запросе в ORM cat - выдаст название категории, а при запросе cat_id - выдаст id категории.
     Т.е. cat - это полноценный объект (имеет name и slug), а cat_id - просто int;\n
+    tags - MANY TO MANY - необязательное поле имеет название менеджера записей "tags", - внешний ключ таблицы тегов
+    (связь многое-ко-многому);\n
     objects - стандартный менеджер модели - при добавлении собственного менеджера, атрибут objects автоматически
     затирается, так что следует прописать его явно;\n
     published - кастомный менеджер модели.
@@ -66,6 +68,7 @@ class Women(models.Model):
     time_update = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(choices=Status.choices, default=Status.DRAFT)
     cat = models.ForeignKey('Category', on_delete=models.PROTECT, related_name='posts')
+    tags = models.ManyToManyField('TagPost', blank=True, related_name='tags')
 
     objects = models.Manager()
     published = PublishedManager()
@@ -87,7 +90,7 @@ class Women(models.Model):
         """
         Метод служит для корректного отображения записи из БД.
 
-        :return: имя актрисы.
+        :return: имя женщины.
         """
         return self.title
 
@@ -127,3 +130,23 @@ class Category(models.Model):
         :return: URL-адрес конкретной записи.
         """
         return reverse('category', kwargs={'cat_slug': self.slug})
+
+
+class TagPost(models.Model):
+    """
+    Класс модели для тегов.
+
+    Атрибуты:\n
+    tag - VARCHAR - обязательное индексируемое текстовое поле длиной 100 символов - тег записи;\n
+    slug - SLUG - обязательное индексируемое уникальное поле длиной 255 символов - слаг индекса.
+    """
+    tag = models.CharField(max_length=100, db_index=True)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
+
+    def __str__(self):
+        """
+        Метод служит для корректного отображения записи из БД.
+
+        :return: тег записи.
+        """
+        return self.tag
