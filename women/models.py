@@ -29,7 +29,7 @@ class Women(models.Model):
     title - VARCHAR - обязательное текстовое поле (содержит одну сроку) заголовка (имя женщины), максимальная длина -
     255 символов;\n
     slug - SLUG - обязательное уникальное (unique=True) индексируемое (db_index=True, нужно, чтобы был более быстрый
-    выбор статей из БД) поле - уникальный идентификатор записи;\n
+    выбор статей из БД) поле максимальной длины 255 символов - уникальный идентификатор записи;\n
     content - TEXT - необязательное (blank=True) текстовое поле (содержит целое текстовое поле) c содержимым статьи;\n
     time_create - DATETIME - обязательное поле, содержащее время добавления записи в БД, во время первого появления
     конкретной записи автоматически проставляет время (auto_now_add=True);\n
@@ -37,6 +37,10 @@ class Women(models.Model):
     изменения конкретной записи в БД (auto_now=True);\n
     is_published - BOOLEAN - обязательное поле показывает, опубликована ли статья, по умолчанию все статьи не
     публикуются;\n
+    cat - FOREIGN KEY - обязательное поле, запрещает удалять категории, которые связаны с постами - внешний ключ таблицы
+    категорий - в БД будет cat_id - "_id" Django добавляет самостоятельно. Причём при запросе в ORM cat - выдаст название
+    категории, а при запросе cat_id - выдаст id категории. Т.е. cat - это полноценный объект (имеет name и slug), а
+    cat_id - просто int;\n
     objects - стандартный менеджер модели - при добавлении собственного менеджера, атрибут objects автоматически
     затирается, так что следует прописать его явно;\n
     published - кастомный менеджер модели.
@@ -61,6 +65,7 @@ class Women(models.Model):
     time_create = models.DateTimeField(auto_now_add=True)
     time_update = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(choices=Status.choices, default=Status.DRAFT)
+    cat = models.ForeignKey('Category', on_delete=models.CASCADE)
 
     objects = models.Manager()
     published = PublishedManager()
@@ -93,3 +98,24 @@ class Women(models.Model):
         :return: str - URL-адрес конкретной записи.
         """
         return reverse('post', kwargs={'post_slug': self.slug})
+
+
+class Category(models.Model):
+    """
+    Класс является связкой для ORM - создаёт таблицу категорий.
+
+    Атрибуты:\n
+    name - VARCHAR - обязательное индексируемое поле максимальной длины 100 символов - название категории;\n
+    slug - SLUG - обязательное уникальное индексируемое поле максимальной длины 255 символов - уникальный идентификатор
+    записи.
+    """
+    name = models.CharField(max_length=100, db_index=True)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
+
+    def __str__(self):
+        """
+        Метод служит для корректного отображения записи из БД.
+
+        :return: str - название категории.
+        """
+        return self.name
