@@ -4,20 +4,20 @@ class FourDigitYearConverter:
     """
     regex = '[0-9]{4}'  # Регулярное выражение.
 
-    def to_python(self, value):
+    def to_python(self, value: str) -> int:
         """
         Метод служит для преобразования строки значения года в число.
 
-        :param value: str - год, введённый пользователем.
-        :return: int - год, введённый пользователем.
+        :param value: год, введённый пользователем в формате строки.
+        :return: год, введённый пользователем в формате числа
         """
         return int(value)
 
-    def to_url(self, value):
+    def to_url(self, value: int) -> str:
         """
         Метод служит для преобразования целого значения в строку для URL.
 
-        :param value: int - год, введённый пользователем.
-        :return: str - год, введённый пользователем.
+        :param value: год, введённый пользователем в формате числа.
+        :return: год, введённый пользователем в формате строки.
         """
         return '$04d' % value

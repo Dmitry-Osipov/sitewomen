@@ -1,4 +1,4 @@
-from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect, HttpRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
@@ -13,21 +13,15 @@ menu = [{'title': 'О сайте', 'url_name': 'about'},
         {'title': 'Войти', 'url_name': 'login'},
 ]
 
-cats_db = [  # Коллекция представляет список категорий - тоже имитация таблицы БД.
-    {'id': 1, 'name': 'Актрисы'},
-    {'id': 2, 'name': 'Певицы'},
-    {'id': 3, 'name': 'Спортсменки'},
-]
-
 
 # Create your views here.
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     """
     Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/.
 
-    :param request: HttpRequest - специальный класс, который содержит информацию о запросе. Через эту переменную нам
+    :param request: Специальный класс, который содержит информацию о запросе. Через эту переменную нам
     доступна вся информация о запросе.
-    :return: HttpResponse - экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
+    :return: Экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
     передаётся строкой аргументом).
     """
     posts = Women.published.all()
@@ -42,12 +36,12 @@ def index(request):
     return render(request, 'women/index.html', context=data)
 
 
-def about(request):
+def about(request: HttpRequest) -> HttpResponse:
     """
     Функция представления служит для отображения страницы о сайте.
 
-    :param request: HttpRequest - запрос пользователя.
-    :return: HttpResponse - HTML-страница с заголовком первого уровня. Информационная страница о сайте.
+    :param request: Запрос пользователя.
+    :return: HTML-страница с заголовком первого уровня. Информационная страница о сайте.
     """
     data = {
         'title': 'О сайте',
@@ -56,14 +50,14 @@ def about(request):
     return render(request, 'women/about.html', context=data)
 
 
-def show_post(request, post_slug):
+def show_post(request: HttpRequest, post_slug: models.SlugField) -> HttpResponse:
     """
     Функция представления служит для отображения конкретного поста о женщине.
 
-    :param request: HttpRequest - запрос пользователя.
-    :param post_slug: str - уникальный идентификатор записи.
-    :return: HttpResponse - запись из БД про известную женщину.
-    :raises Http404: ошибка 404 на сайте, если статья с нужным id не была найдена в БД.
+    :param request: Запрос пользователя.
+    :param post_slug: Уникальный идентификатор записи.
+    :return: Запись из БД про известную женщину.
+    :raises Http404: Ошибка 404 на сайте, если статья с нужным id не была найдена в БД.
     """
     post = get_object_or_404(Women, slug=post_slug)
 
@@ -77,61 +71,64 @@ def show_post(request, post_slug):
     return render(request, 'women/post.html', context=data)
 
 
-def show_category(request, cat_id):
+def show_category(request: HttpRequest, cat_slug: models.SlugField) -> HttpResponse:
     """
     Функция представления отвечает за отображение выбранной категории.
 
-    :param request: HttpRequest - запрос пользователя.
-    :param cat_id: int - уникальный идентификатор категории.
-    :return: HttpResponse - временная заглушка.
+    :param request: Запрос пользователя.
+    :param cat_slug: Уникальный идентификатор категории.
+    :return: Страница со всеми постами подходящей категории.
     """
+    category = get_object_or_404(Category, slug=cat_slug)
+    posts = Women.published.filter(cat_id=category.pk)
+
     data = {
-        'title': 'Отображение по рубрикам',
+        'title': f'Рубрика: {category.name}',
         'menu': menu,
-        'posts': Women.published.all(),
-        'cat_selected': cat_id,
+        'posts': posts,
+        'cat_selected': category.pk,
     }
 
     return render(request, 'women/index.html', context=data)
 
 
-def add_page(request):
+def add_page(request: HttpRequest) -> HttpResponse:
     """
     Функция представления служит для добавления статьи про известную женщину.
 
-    :param request: HttpRequest - запрос пользователя.
-    :return: HttpResponse - текст про добавление статьи.
+    :param request: Запрос пользователя.
+    :return: Текст про добавление статьи.
     """
     return HttpResponse('Добавление статьи')
 
 
-def contact(request):
+def contact(request: HttpRequest) -> HttpResponse:
     """
     Функция представления служит для обратной связи разработчику сайта.
 
-    :param request: HttpRequest - запрос пользователя.
-    :return: HttpResponse - текст про обратную связь.
+    :param request: Запрос пользователя.
+    :return: Текст про обратную связь.
     """
     return HttpResponse('Обратная связь')
 
 
-def login(request):
+def login(request: HttpRequest) -> HttpResponse:
     """
     Функция представления служит для авторизации пользователя на сайте.
 
-    :param request: HttpRequest - запрос пользователя.
-    :return: HttpResponse - текст про авторизацию.
+    :param request: Запрос пользователя.
+    :return: Текст про авторизацию.
     """
     return HttpResponse('Авторизация')
 
 
-def page_not_found(request, exception):
+def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotFound:
     """
     Функция представления служит для отображения нужной нам страницы при 404 ошибке.
 
-    :param request: HttpRequest - запрос от пользователя.
-    :param exception: HttpRequest - 404 ошибка пользователя.
-    :return: HttpResponseNotFound - сообщение об ошибке.
+    :param request: Запрос от пользователя.
+    :param exception: 404 ошибка пользователя.
+    :return: Страница с сообщением об ошибке.
     """
     return HttpResponseNotFound('<h1>Страница не найдена</h1>')
 

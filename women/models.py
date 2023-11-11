@@ -11,7 +11,7 @@ class PublishedManager(models.Manager):
     Пример:\n
     Women.published.all()
     """
-    def get_queryset(self):
+    def get_queryset(self) -> models.QuerySet:
         """
         Метод возвращает опубликованные статьи.
 
@@ -83,11 +83,11 @@ class Women(models.Model):
             models.Index(fields=['-time_create']),
         ]
 
-    def __str__(self):
+    def __str__(self) -> models.CharField:
         """
         Метод служит для корректного отображения записи из БД.
 
-        :return: str - имя актрисы.
+        :return: имя актрисы.
         """
         return self.title
 
@@ -95,7 +95,7 @@ class Women(models.Model):
         """
         Метод формирует URL-адрес для каждой конкретной записи.
 
-        :return: str - URL-адрес конкретной записи.
+        :return: URL-адрес конкретной записи.
         """
         return reverse('post', kwargs={'post_slug': self.slug})
 
@@ -112,10 +112,18 @@ class Category(models.Model):
     name = models.CharField(max_length=100, db_index=True)
     slug = models.SlugField(max_length=255, unique=True, db_index=True)
 
-    def __str__(self):
+    def __str__(self) -> models.CharField:
         """
         Метод служит для корректного отображения записи из БД.
 
-        :return: str - название категории.
+        :return: название категории.
         """
         return self.name
+
+    def get_absolute_url(self):
+        """
+        Метод формирует URL-адрес для каждой конкретной записи.
+
+        :return: URL-адрес конкретной записи.
+        """
+        return reverse('category', kwargs={'cat_slug': self.slug})
