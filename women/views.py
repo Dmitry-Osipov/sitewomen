@@ -57,7 +57,7 @@ def show_post(request: HttpRequest, post_slug: models.SlugField) -> HttpResponse
     :param request: Запрос пользователя.
     :param post_slug: Уникальный идентификатор записи.
     :return: Запись из БД про известную женщину.
-    :raises Http404: Ошибка 404 на сайте, если статья с нужным id не была найдена в БД.
+    :raises Http404: Ошибка 404 на сайте, если статья с нужным слагом не была найдена в БД.
     """
     post = get_object_or_404(Women, slug=post_slug)
 
@@ -78,6 +78,7 @@ def show_category(request: HttpRequest, cat_slug: models.SlugField) -> HttpRespo
     :param request: Запрос пользователя.
     :param cat_slug: Уникальный идентификатор категории.
     :return: Страница со всеми постами подходящей категории.
+    :raises Http404: Ошибка 404 на сайте, если категория с нужным слагом не была найдена в БД.
     """
     category = get_object_or_404(Category, slug=cat_slug)
     posts = Women.published.filter(cat_id=category.pk)

@@ -2849,3 +2849,80 @@ Category.objects.filter(posts__title__contains='ли')
 Category.objects.filter(posts__title__contains='ли').distinct()
 ```
 На этом мы завершим обзор возможностей ORM Django при работе со связанными таблицами. На следующем занятии воспользуемся ими для отображения статей по рубрикам.
+### 26. Отображение постов по рубрикам.
+Давайте воспользуемся таблицей category и сделаем полноценное отображение статей по рубрикам. Для начала я в файле women/urls.py поменяю в маршруте category конвертор с int на slug и обозначу параметр как cat_slug:
+```python
+# women/urls.py
+...
+    path('category/<slug:cat_slug>/', views.show_category, name='category'),
+...
+```
+После этого перейдем в файл women/views.py и отредактируем функцию представления show_category() следующим образом:
+```python
+# women/views.py
+def show_category(request, cat_slug):
+    category = get_object_or_404(Category, slug=cat_slug)
+    posts = Women.published.filter(cat_id=category.pk)
+    data = {
+        'title': f'Рубрика: {category.name}',
+        'menu': menu,
+        'posts': posts,
+        'cat_selected': category.pk,
+    }
+ 
+    return render(request, 'women/index.html', context=data)
+```
+Мы здесь вначале проверяем наличие раздела с указанным слагом, если его нет в БД, то генерируется исключение 404 PageNotFound. Если же рубрика найдена, то выбираются все посты с помощью менеджера published, у которых категория имеет указанный слаг. Затем формируется словарь data с передаваемыми данными в шаблон index.html. Причем, в title мы будем отображать название рубрики. (Список cats_db удалим).
+
+Далее, вспоминаем, что рубрики отображаются с помощью пользовательского шаблонного тега, прописанного в файле women_tags.py. Здесь в функции show_categories() вместо коллекции cats_db будем читать данные из таблицы category и передавать в шаблон list_categories.html:
+```python
+# women/templatetags/women_tags.py
+@register.inclusion_tag('women/list_categories.html')
+def show_categories(cat_selected_id=0):
+    cats = Category.objects.all()
+    return {"cats": cats, "cat_selected": cat_selected_id}
+```
+А в самом шаблоне list_categories.html изменим отображение ссылок рубрик следующим образом:
+```html
+<!-- list_categories.html -->
+...
+{% for cat in cats %}
+    {% if cat.id == cat_selected %}
+        <li class="selected">{{cat.name}}</li>
+    {% else %}
+        <li><a href="{{ cat.get_absolute_url }}">{{cat.name}}</a></li>
+    {% endif %}
+{% endfor %}
+...
+```
+Соответственно, метод get_absolute_url() необходимо добавить в модель Category:
+```python
+# women/models.py
+class Category(models.Model):
+    name = models.CharField(max_length=100, db_index=True)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
+ 
+    def get_absolute_url(self):
+        return reverse('category', kwargs={'cat_slug': self.slug})
+ 
+    def __str__(self):
+        return self.name
+```
+Все, мы сделали отображение статей по категориям, причем URL-адреса будут использовать слаги. После запуска тестового веб-сервера увидим две категории и отображение списка статей строго по каждой из них.
+
+Добавим еще у каждой статьи вывод названия категории и время ее последнего изменения. В шаблоне index.html перед заголовком пропишем строчки:
+```html
+<!-- index.html -->
+<li>
+    <div class="article-panel">
+        <p class="first">Категория: {{p.cat}}</p>
+        <p class="last">Дата: {{p.time_update|date:"d-m-Y H:i:s"}}</p>
+    </div>
+    ...
+```
+Смотрите, обращаясь к атрибуту cat (а не cat_id), мы получаем его строковое представление то, которое определили в модели Category через магический метод __str__. То есть, cat – это объект класса Category и как вариант мы можем отображать название категории и через его атрибут name:
+```html
+<!-- index.html -->
+<p class="first">Категория: {{p.cat.name}}</p>
+```
+Для формирования нужного формата времени используем фильтр date с параметрами: день, месяц, год, часы, минуты, секунды. Теперь перед каждой статьей отображается ее категория и время последнего редактирования.
