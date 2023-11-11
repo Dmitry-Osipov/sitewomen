@@ -37,10 +37,10 @@ class Women(models.Model):
     изменения конкретной записи в БД (auto_now=True);\n
     is_published - BOOLEAN - обязательное поле показывает, опубликована ли статья, по умолчанию все статьи не
     публикуются;\n
-    cat - FOREIGN KEY - обязательное поле, запрещает удалять категории, которые связаны с постами - внешний ключ таблицы
-    категорий - в БД будет cat_id - "_id" Django добавляет самостоятельно. Причём при запросе в ORM cat - выдаст название
-    категории, а при запросе cat_id - выдаст id категории. Т.е. cat - это полноценный объект (имеет name и slug), а
-    cat_id - просто int;\n
+    cat - FOREIGN KEY - обязательное поле, запрещает удалять категории, которые связаны с постами, имеет название
+    менеджера записей "posts", - внешний ключ таблицы категорий - в БД будет cat_id - "_id" Django добавляет
+    самостоятельно. Причём при запросе в ORM cat - выдаст название категории, а при запросе cat_id - выдаст id категории.
+    Т.е. cat - это полноценный объект (имеет name и slug), а cat_id - просто int;\n
     objects - стандартный менеджер модели - при добавлении собственного менеджера, атрибут objects автоматически
     затирается, так что следует прописать его явно;\n
     published - кастомный менеджер модели.
@@ -65,7 +65,7 @@ class Women(models.Model):
     time_create = models.DateTimeField(auto_now_add=True)
     time_update = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(choices=Status.choices, default=Status.DRAFT)
-    cat = models.ForeignKey('Category', on_delete=models.CASCADE)
+    cat = models.ForeignKey('Category', on_delete=models.PROTECT, related_name='posts')
 
     objects = models.Manager()
     published = PublishedManager()
