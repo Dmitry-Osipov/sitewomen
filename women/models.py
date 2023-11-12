@@ -43,6 +43,8 @@ class Women(models.Model):
     Т.е. cat - это полноценный объект (имеет name и slug), а cat_id - просто int;\n
     tags - MANY TO MANY - необязательное поле имеет название менеджера записей "tags", - внешний ключ таблицы тегов
     (связь многое-ко-многому);\n
+    husband - ONE TO ONE - необязательное поле, имеющее название менеджера записей "wuman", по умолчанию ставится NULL -
+    внешний ключ таблицы мужа (связь один-к-одному);\n
     objects - стандартный менеджер модели - при добавлении собственного менеджера, атрибут objects автоматически
     затирается, так что следует прописать его явно;\n
     published - кастомный менеджер модели.
@@ -69,6 +71,7 @@ class Women(models.Model):
     is_published = models.BooleanField(choices=Status.choices, default=Status.DRAFT)
     cat = models.ForeignKey('Category', on_delete=models.PROTECT, related_name='posts')
     tags = models.ManyToManyField('TagPost', blank=True, related_name='tags')
+    husband = models.OneToOneField('Husband', on_delete=models.SET_NULL, null=True, blank=True, related_name='wuman')
 
     objects = models.Manager()
     published = PublishedManager()
@@ -90,7 +93,7 @@ class Women(models.Model):
         """
         Метод служит для корректного отображения записи из БД.
 
-        :return: имя женщины.
+        :return: Имя женщины.
         """
         return self.title
 
@@ -119,7 +122,7 @@ class Category(models.Model):
         """
         Метод служит для корректного отображения записи из БД.
 
-        :return: название категории.
+        :return: Название категории.
         """
         return self.name
 
@@ -143,11 +146,11 @@ class TagPost(models.Model):
     tag = models.CharField(max_length=100, db_index=True)
     slug = models.SlugField(max_length=255, unique=True, db_index=True)
 
-    def __str__(self):
+    def __str__(self) -> models.CharField:
         """
         Метод служит для корректного отображения записи из БД.
 
-        :return: тег записи.
+        :return: Тег записи.
         """
         return self.tag
 
@@ -158,3 +161,23 @@ class TagPost(models.Model):
         :return: URL-адрес конкретной записи.
         """
         return reverse('tag', kwargs={'tag_slug': self.slug})
+
+
+class Husband(models.Model):
+    """
+    Класс модели мужа известной женщины.
+
+    Атрибуты:\n
+    name - VARCHAR - обязательное поле максимальной длины 100 символов - имя мужа;\n
+    age - INTEGER - обязательное поле, может иметь значение NULL - возраст мужа.
+    """
+    name = models.CharField(max_length=100)
+    age = models.IntegerField(null=True)
+
+    def __str__(self) -> models.CharField:
+        """
+        Метод служит для корректного отображения записи из БД.
+
+        :return: Имя мужа.
+        """
+        return self.name
