@@ -27,6 +27,8 @@ DEBUG = True  # Переменная служит для более удобно
 
 ALLOWED_HOSTS = ['127.0.0.1']  # Здесь требуется указывать разрешённые хосты, когда мы будем заселять сайт на сервер.
 
+INTERNAL_IPS = ['127.0.0.1']  # Добавили коллекцию внутренних IP (в т.ч. для django debug toolbar).
+
 
 # Application definition
 
@@ -42,6 +44,7 @@ INSTALLED_APPS = [
     # написать имя приложения (women), но в действительности Django обращаясь к пакету women, берёт файл apps.py и
     # настройки из класса WomenConfig, поэтому мы явно пропишем путь к этому классу. Прим. 2: также чтобы шаблоны
     # находились, мы прописали здесь само приложение. Если бы мы этого не сделали, то шаблоны не отработали.
+    'debug_toolbar',  # Настройка для работы с инструментом django debug toolbar.
 ]
 
 MIDDLEWARE = [
@@ -52,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',  # Ещё одна настройка для работы django debug toolbar.
 ]
 
 ROOT_URLCONF = 'sitewomen.urls'
