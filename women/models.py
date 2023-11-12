@@ -169,10 +169,12 @@ class Husband(models.Model):
 
     Атрибуты:\n
     name - VARCHAR - обязательное поле максимальной длины 100 символов - имя мужа;\n
-    age - INTEGER - обязательное поле, может иметь значение NULL - возраст мужа.
+    age - INTEGER - обязательное поле, может иметь значение NULL - возраст мужа;\n
+    m_count - INTEGER - необязательное поле по умолчанию 0 - количество свадеб мужа.
     """
     name = models.CharField(max_length=100)
     age = models.IntegerField(null=True)
+    m_count = models.IntegerField(blank=True, default=0)
 
     def __str__(self) -> models.CharField:
         """
