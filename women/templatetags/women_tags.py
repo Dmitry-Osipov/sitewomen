@@ -1,4 +1,6 @@
 from django import template
+from django.db.models import Count
+
 from ..views import *
 
 register = template.Library()
@@ -14,7 +16,7 @@ def show_categories(cat_selected: int = 0) -> dict[str, Category | int]:
     :return: Словарь содержит все категории с id и названиями. P.s.: этот словарь будет передаваться в шаблон,
     который мы указали аргументом в декораторе.
     """
-    cats = Category.objects.all()
+    cats = Category.objects.annotate(total=Count('posts')).filter(total__gt=0)
     return {'cats': cats, 'cat_selected': cat_selected}
 
 
@@ -25,7 +27,7 @@ def show_all_tags() -> dict[str, TagPost]:
 
     :return: Словарь, содержащий все теги. Этот словарь будет передаваться в шаблон, указанный аргументом в декораторе.
     """
-    return {'tags': TagPost.objects.all()}
+    return {'tags': TagPost.objects.annotate(total=Count('tags')).filter(total__gt=0)}
 
 
 # Функция ниже является примером формирования простого тэга:
