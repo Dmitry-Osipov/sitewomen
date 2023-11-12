@@ -123,6 +123,20 @@ def login(request: HttpRequest) -> HttpResponse:
     return HttpResponse('Авторизация')
 
 
+def show_tag_postlist(request: HttpRequest, tag_slug: models.SlugField) -> HttpResponse:
+    tag = get_object_or_404(TagPost, slug=tag_slug)
+    posts = tag.tags.filter(is_published=Women.Status.PUBLISHED)
+
+    data = {
+        'title': f'Тег: {tag.tag}',
+        'menu': menu,
+        'posts': posts,
+        'cat_selected': None,
+    }
+
+    return render(request, 'women/index.html', context=data)
+
+
 def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotFound:
     """
     Функция представления служит для отображения нужной нам страницы при 404 ошибке.

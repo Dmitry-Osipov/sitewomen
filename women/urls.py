@@ -16,6 +16,7 @@ urlpatterns = [  # В этой коллекции можно прописать 
     path('login/', login, name='login'),
     path('post/<slug:post_slug>/', show_post, name='post'),
     path('category/<slug:cat_slug>/', show_category, name='category'),
+    path('tag/<slug:tag_slug>', show_tag_postlist, name='tag'),
 
     # Ниже используются пути и функции для представления базовых возможностей Django.
     path('cats/<int:cat_id>/', categories, name='cats_id'),  # По стандартам отрасли следует прописывать слэш в конце суффикса,

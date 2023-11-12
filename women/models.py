@@ -150,3 +150,11 @@ class TagPost(models.Model):
         :return: тег записи.
         """
         return self.tag
+
+    def get_absolute_url(self):
+        """
+        Метод формирует URL-адрес для каждой конкретной записи.
+
+        :return: URL-адрес конкретной записи.
+        """
+        return reverse('tag', kwargs={'tag_slug': self.slug})
