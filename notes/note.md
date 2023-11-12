@@ -3044,3 +3044,137 @@ w = Women.objects.create(title='Ариана Гранде', slug='ariana-grande'
 ```shell
 w.tags.set([tag_br, tag_v])
 ```
+### 28. Добавление тегов на сайт.
+На этом занятии мы с вами добавим теги на наш учебный сайт. Список всех тегов будем выводить в сайдбаре с помощью шаблонного тега. И, кроме того, у каждой статьи также выводить список тегов, которые к ней относятся.
+
+Первым делом, пропишем новый маршрут для отображения списка статей по выбранному тегу. В файле women/urls.py в коллекцию urlpatterns добавим строчку:
+```python
+# women/urls.py
+urlpatterns = [
+    ...
+    path('tag/<slug:tag_slug>/', show_tag_postlist, name='tag'),
+]
+```
+И в модели TagPost пропишем метод get_absolute_url() для формирования URL-адреса:
+```python
+# women/models.py
+class TagPost(models.Model):
+    tag = models.CharField(max_length=100, db_index=True)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
+ 
+    def get_absolute_url(self):
+        return reverse('tag', kwargs={'tag_slug': self.slug})
+ 
+    def __str__(self):
+        return self.tag
+```
+Далее, в файле women/views.py объявим функцию представления для нового маршрута:
+```python
+# women/views.py
+def show_tag_postlist(request, tag_slug):
+    tag = get_object_or_404(TagPost, slug=tag_slug)
+    posts = tag.tags.filter(is_published=Women.Status.PUBLISHED)
+    data = {
+        'title': f'Тег: {tag.tag}',
+        'menu': menu,
+        'posts': posts,
+        'cat_selected': None,
+    }
+ 
+    return render(request, 'women/index.html', context=data)
+```
+Мы здесь пытаемся получить тег по его слагу. Если это удается, то затем, читаем список опубликованных постов, связанных с этим тегом. Ниже идет стандартное отображение списка с помощью шаблона index.html.
+
+Добавим в функцию представления index() параметр cat_selected со значением 0:
+```python
+# women/views.py
+def index(request):
+    data = {
+        'title': 'Главная страница',
+        'menu': menu,
+        'posts': Women.published.all(),
+        'cat_selected': 0,
+    }
+ 
+    return render(request, 'women/index.html', context=data)
+```
+И следующим шагом сформируем новый шаблонный тег для отображения списка тегов в сайдбаре. Откроем файл women/women_tags.py и зарегистрируем еще одну функцию:
+```python
+# women/templatetags/women_tags.py
+@register.inclusion_tag('women/list_tags.html')
+def show_all_tags():
+    return {"tags": TagPost.objects.all()}
+```
+Добавим шаблон list_tags.html со следующим содержимым:
+```html
+<!-- list_tags.html -->
+{% if tags %}
+    <p>Теги:</p>
+    <ul class="tags-list">
+        {% for t in tags %}
+            <li><a href="{{ t.get_absolute_url }}">{{t.tag}}</a></li>
+        {% endfor %}
+    </ul>
+{% endif %}
+```
+Воспользуемся этим тегом в базовом шаблоне base.html:
+```html
+<!-- base.html -->
+...
+<!-- Sidebar слева -->
+<td valign="top" class="left-chapters">
+    <ul id="leftchapters">
+        {% if cat_selected == 0 or cat_selected is None %}
+            <li class="selected">Все категории</li>
+        {% else %}
+            <li><a href="{% url 'home' %}">Все категории</a></li>
+        {% endif %}
+        {% show_categories cat_selected %}
+        <li class="share">
+        <p>Наш канал</p>
+        <a class="share-yt" href="..." target="_blank" rel="nofollow"></a>
+        </li>
+        
+        <li>{% show_all_tags %}</li>
+    </ul>
+</td>
+<!-- Конец Sidebar'а -->
+...
+```
+Запустим тестовый веб-сервер и посмотрим на результат работы сайта:
+
+![Отображение всех тегов на главной странице](images/all_tags_in_main.jpeg)
+
+Также мы можем кликать по тегам и смотреть список статей, связанных с ними. По некоторым тегам не отображается ни одной статьи, но мы пока это оставим в таком виде.
+
+Осталось добавить список тегов, ассоциированных с каждой отдельной статьей. Для этого перейдем в шаблон women/post.html и добавим следующие строчки:
+```html
+<!-- post.html -->
+{% extends 'base.html' %}
+ 
+{% block breadcrumbs %}
+    <!-- Теги -->
+    {% with post.tags.all as tags %}
+        {% if tags %}
+            <ul class="tags-list">
+            <li>Теги:</li>
+            {% for t in tags %}
+                <li><a href="{{ t.get_absolute_url }}">{{t.tag}}</a></li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+{% endblock %}
+
+
+{% block content %}
+    <h1>{{ post.title }}</h1>
+    
+    {% if post.photo %}
+        <p><img class="img-article-left" src="{{ post.photo.url }}"></p>
+    {% endif %}
+    
+    {{post.content|linebreaks}}
+{% endblock %}
+```
+Открываем на сайте страницу с постом и в самом верху видим список тегов, связанных с ней. Вот пример использования связи Many To Many.
