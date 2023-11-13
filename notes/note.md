@@ -3918,3 +3918,152 @@ class WomenConfig(AppConfig):
     verbose_name = 'Женщины мира'
 ```
 Так стало гораздо лучше. На следующем занятии мы продолжим настраивать админ-панель, в частности, улучшим список отображаемых статей.
+### 37. Настройка отображения списка статей в админ-панели.
+Продолжаем настраивать и изучать работу с админ-панелью и на этом занятии увидим, как можно выполнять настройку отображения списка статей.
+
+Вначале добавим в список записей дополнительные поля: id, title, время создания и флаг публикации. Для этого нужно открыть файл women/admin.py и объявить класс, унаследованный от ModelAdmin:
+```python
+# women/admin.py
+class WomenAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'time_create', 'is_published')
+    list_display_links = ('id', 'title')
+```
+Здесь в атрибуте list_display указываем список отображаемых полей, в атрибуте list_display_links – список полей в виде ссылки для перехода к конкретной записи.
+
+Зарегистрируем этот класс с помощью функции register:
+```python
+# women/admin.py
+...
+admin.site.register(Women, WomenAdmin)
+```
+причем, WomenAdmin должен обязательно идти после класса модели Women. Возвращаемся в админку и видим все эти поля.
+
+На самом деле здесь register – это декоратор и его можно применить к классу WomenAdmin следующим образом:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'time_create', 'is_published')
+    list_display_links = ('id', 'title')
+```
+И это более удобный вариант. Именно им мы и будем пользоваться.
+
+Далее добавим сортировку записей по дате их создания и по заголовку с помощью еще одного атрибута ordering в классе WomenAdmin:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    ordering = ['time_create', 'title']
+```
+Этот порядок будет применяться только при отображении статей в админ-панели. Порядок записей при их считывании из БД определяется таким же атрибутом ordering, но непосредственно в модели.
+
+Здесь у вас может возникнуть вопрос, как происходит упорядочение по нескольким полям? Очень просто. Сначала идет сортировка по первому полю (в данном случае дате создания), но если даты оказываются равными, то учитывается следующее поле (заголовок) и так далее. Перейдем в админ-панель и видим, что особо ничего не поменялось, записи и так шли в порядке возрастания времени создания. Изменим сортировку по первому полю на противоположную (ставим знак минус):
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    ordering = ['-time_create', 'title']
+```
+и порядок отображения постов также поменялся.
+
+Давайте теперь поменяем английское написание полей на русские названия. Перейдем в класс определения модели Women (women/models.py) и у каждого поля соответствующих классов добавим именованный параметр verbose_name:
+```python
+# women/models.py
+class Women(models.Model):
+    class Status(models.IntegerChoices):
+        DRAFT = 0, 'Черновик'
+        PUBLISHED = 1, 'Опубликовано'
+ 
+    title = models.CharField(max_length=255, verbose_name="Заголовок")
+    slug = models.SlugField(max_length=255, db_index=True, unique=True)
+    content = models.TextField(blank=True, verbose_name="Текст статьи")
+    time_create = models.DateTimeField(auto_now_add=True, verbose_name="Время создания")
+    time_update = models.DateTimeField(auto_now=True, verbose_name="Время изменения")
+    is_published = models.BooleanField(choices=Status.choices, default=Status.DRAFT, verbose_name="Статус")
+    cat = models.ForeignKey('Category', on_delete=models.PROTECT, related_name='posts', verbose_name="Категории")
+    tags = models.ManyToManyField('TagPost', related_name='tags', verbose_name="Тэги")
+    husband = models.OneToOneField('Husbands', on_delete=models.SET_NULL, null=True, blank=True, related_name='wuman',
+                                   verbose_name="Муж")
+    ...
+```
+Теперь имена полей отображаются с указанными значениями.
+
+По аналогии зарегистрируем вторую модель Category. В файле women/admin.py пропишем:
+```python
+# women/admin.py
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+    list_display_links = ('id', 'name')
+```
+Переходим в админку и видим, что появилось второе приложение с набором указанных полей. Также скорректируем все названия. Перейдем в файл women/models.py и в класс Category добавим вложенный класс Meta:
+```python
+# women/models.py
+class Category(models.Model):
+    name = models.CharField(max_length=100, db_index=True, verbose_name="Категория")
+    ...
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+    ...
+```
+Все, теперь мы можем полноценно работать и с рубриками в нашей админ-панели.
+
+Следующим шагом мы с вами позволим пользователю сразу редактировать отдельные поля непосредственно в списке. Например, это удобно сделать для поля «Статус» (is_published). Для этого в классе WomenAdmin нужно добавить еще один атрибут:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    list_editable = ('is_published', )
+```
+Обновляем список и теперь поле можно редактировать прямо на месте. Однако мы видим не те значения этого поля, которые записаны в БД. Это связано с тем, что атрибут choices класса BooleanField модели Women должен содержать кортежи с булевыми, а не числовыми значениями. Мы использовали числовые, так как класс BooleanChoices не существует и такое перечисление создать по умолчанию нельзя. Поэтому я здесь поставлю небольшой костыль в виде преобразования числовых значений 0 и 1 в соответствующие булевы False и True следующим образом:
+```python
+# women/models.py
+class Women(models.Model):
+    ...
+    is_published = models.BooleanField(choices=tuple(map(lambda x: (bool(x[0]), x[1]), Status.choices)),
+                                       default=Status.DRAFT, verbose_name="Статус")
+    ...
+```
+Снова обновляем страницу админ-панели и теперь данные отображаются корректно.
+
+Но, обратите внимание, мы можем делать редактируемыми только те поля, которые не входят в список list_display_links, то есть, не являются ссылками. Например, при попытке сделать редактируемым поле title:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    list_editable = ('is_published', 'title')
+```
+у нас возникнет ошибка. Но, если его убрать из коллекции list_display_links, то никаких ошибок не будет и мы его также сможем менять прямо в списке. Причем, виджет для его отображения будет уже несколько другим: в виде текстового поля редактирования. Фреймворк Django автоматически назначает разным типам полей нужные виджеты для отображения, что очень удобно.
+
+Я верну поле title к прежнему виду и отмечу, что мы также совершенно спокойно можем отображать и редактировать в этом списке поля связанных таблиц, например, категории. Для этого в списке list_display достаточно указать значение ‘cat’:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    list_display = ('title', 'time_create', 'is_published', 'cat')
+```
+и то же самое можно сделать в списке list_editable:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    list_editable = ('is_published', 'cat')
+```
+Автоматически появляются виджеты для выбора рубрики и их изменения. Но уберем это поле из списка list_editable и последнее, что мы сделаем на этом занятии – это настроем пагинацию для списка. Для этого воспользуемся атрибутом list_per_page с указанием максимального числа записей на странице. Например, запись вида:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    list_per_page = 5
+```
+означает отображение по 5 записей. Обновляем страницу и видим ожидаемый результат.
+
+Все, в целом админка у нас настроена. Видите как это удобно! Нам не нужно ничего вручную прописывать, фреймворк Django многое берет на себя. Подробную документацию о параметрах настройки можно посмотреть на странице [документации](https://docs.djangoproject.com/en/4.2/ref/contrib/admin/).
