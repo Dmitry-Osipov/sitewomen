@@ -1,4 +1,5 @@
 from django.db import models
+from django.template.defaultfilters import slugify
 from django.urls import reverse
 
 
@@ -18,6 +19,22 @@ class PublishedManager(models.Manager):
         :return: QuerySet - коллекция содержит только те записи, у которых флаг публикации = True.
         """
         return super().get_queryset().filter(is_published=Women.Status.PUBLISHED)
+
+
+def translit_to_eng(s: str) -> str:
+    """
+    Вспомогательный метод для функции slugify преобразует кириллицу в латиницу с нижним регистром.
+
+    :param s: Начальная строка на кириллице.
+    :return: Новая строка в нижнем регистре на латинице.
+    """
+    d = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd',
+         'е': 'e', 'ё': 'yo', 'ж': 'zh', 'з': 'z', 'и': 'i', 'к': 'k',
+         'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r',
+         'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch',
+         'ш': 'sh', 'щ': 'shch', 'ь': '', 'ы': 'y', 'ъ': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'}
+
+    return ''.join(map(lambda x: d[x] if d.get(x, False) else x, s.lower()))
 
 
 class Women(models.Model):
@@ -110,6 +127,13 @@ class Women(models.Model):
         :return: URL-адрес конкретной записи.
         """
         return reverse('post', kwargs={'post_slug': self.slug})
+
+    # def save(self, *args, **kwargs) -> None:
+    #     """
+    #     Метод создаёт слаг на основе заголовка статьи и сохраняет запись в БД.
+    #     """
+    #     self.slug = slugify(translit_to_eng(self.title))
+    #     super().save(*args, **kwargs)
 
 
 class Category(models.Model):
