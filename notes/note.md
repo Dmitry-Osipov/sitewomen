@@ -4167,3 +4167,115 @@ class WomenAdmin(admin.ModelAdmin):
         self.message_user(request, f"{count} записи(ей) сняты с публикации!", messages.WARNING)
 ```
 Смотрите, мы здесь в методе message_user() дополнительно указали флаг messages.WARNING для отображения сообщения как предупреждения, что публикации были сняты. После выбора записей и выполнения команды снятия с публикации, увидим ожидаемый результат.
+### 39. Панель поиска и панель фильтрации.
+Продолжаем настраивать и изучать работу с админ-панелью. Давайте добавим у списка панель поиска. Делается это очень просто. Достаточно прописать атрибут search_fields в классе WomenAdmin и указать в списке поля, по которым следует выполнять поиск. Например, так:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    list_display = ('title', 'time_create', 'is_published', 'cat', 'brief_info')
+    list_display_links = ('title', )
+    list_editable = ('is_published', )
+    ordering = ['-time_create', 'title']
+    actions = ['set_published', 'set_draft']
+    search_fields = ['title']
+```
+После запуска веб-севера и перехода в админ-панель в списке постов модели Women мы увидим наверху панель поиска. Причем, поиск будет осуществляться только по полю title. Давайте в этом убедимся. Наберем фрагмент «ан» и увидим только те записи, в которых в заголовке присутствует фрагмент «ан», причем малыми буквами. То есть, поиск в админ-панели Django осуществляется в регистрозависимом виде. Если же набрать «Ан», то увидим только одну запись «Анджелина Джоли».
+
+Давайте теперь попробуем здесь же сделать поиск по категориям. Для этого у нас есть внешний ключ в виде атрибута cat. Если прописать его в списке search_fields:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    list_display = ('title', 'time_create', 'is_published', 'cat', 'brief_info')
+    list_display_links = ('title', )
+    list_editable = ('is_published', )
+    ordering = ['-time_create', 'title']
+    actions = ['set_published', 'set_draft']
+    search_fields = ['title', 'cat']
+```
+то при обновлении страницы возникнет ошибка обработки такого объекта. Почему так произошло? Потому что здесь нужно указывать конкретные названия полей, а не просто внешний ключ. Например, название категории, определяется полем name. И мы с вами уже знаем, что в связанных таблицах через два подчеркивания можно прописывать названия полей, а также различные lookup’ы. Давайте попробуем здесь сделать то же самое:
+```python
+# women/admin.py
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    list_display = ('title', 'time_create', 'is_published', 'cat', 'brief_info')
+    list_display_links = ('title', )
+    list_editable = ('is_published', )
+    ordering = ['-time_create', 'title']
+    actions = ['set_published', 'set_draft']
+    search_fields = ['title', 'cat__name']
+```
+Теперь никаких ошибок нет и поиск работает по категориям. То есть, теперь мы можем выполнять поиск сразу по двум полям: по заголовкам и по категориям.
+
+Мало того, как я только что сказал, у этих полей можно прописывать и lookup’ы. Например, давайте потребуем, чтобы искомый фрагмент искался с начала заголовка:
+```python
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    list_display = ('title', 'time_create', 'is_published', 'cat', 'brief_info')
+    list_display_links = ('title', )
+    list_editable = ('is_published', )
+    ordering = ['-time_create', 'title']
+    actions = ['set_published', 'set_draft']
+    search_fields = ['title__startswith', 'cat__name']
+```
+Набираем в поиске «Дж» и видим только две записи. А если убрать этот lookup, то увидим три записи, так как «Дж» встречается еще у одной, но не с самого начала. Вот так можно настраивать и управлять процессом поиска в админ-панели Django.
+#### Настройка панели фильтрации.
+Далее мы с вами добавим рядом со списком наших постов панель для их фильтрации по заданным критериям. В самом простом варианте для этого в классе WomenAdmin достаточно прописать атрибут:
+```python
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    list_filter = ['cat__name', 'is_published']
+```
+При обновлении страницы справа появится панель фильтрации постов по категориям и статусам публикации.
+
+Но мы можем здесь добавить свой собственный фильтр. Например, давайте будем отбирать замужних и незамужних женщин. Для этого у нас имеется внешний ключ husband с типом связи один к одному. Он нам пригодится.
+
+Первым делом нужно определить класс, который будет отвечать за логику работы фильтра. Определим его перед классом WomenAdmin следующим образом:
+```python
+# women/admin.py
+class MarriedFilter(admin.SimpleListFilter):
+    title = 'Статус женщин'
+    parameter_name = 'status'
+    
+    def lookups(self, request, model_admin):
+        return [
+            ('married', 'Замужем'),
+            ('single', 'Не замужем'),
+        ]
+ 
+    def queryset(self, request, queryset):
+        return queryset
+```
+Здесь обязательный атрибут title определяет название фильтра на панели, а обязательный атрибут parameter_name – название параметра в GET-запросе. Скоро вы увидите, как и где он фигурирует. Далее, идут два метода. Первый lookups() должен возвращать список из возможных значений параметра status и названий позиций в панели фильтра. Второй, queryset() отвечает за отбор записей для соответствующей выбранной позиции. Пока мы здесь просто возвращаем все записи.
+
+Чтобы наш фильтр отображался на админ-панели, в списке list_filter класса WomenAdmin этот класс нужно указать (без кавычек):
+```python
+@admin.register(Women)
+class WomenAdmin(admin.ModelAdmin):
+    ...
+    list_filter = [MarriedFilter, 'cat__name', 'is_published']
+```
+Обновим админ-панель и справа видим отображение нашего фильтра. Если кликнуть по позиции «Замужем», то в браузере формируется следующий GET-запрос:
+```http request
+http://127.0.0.1:8000/admin/women/women/?status=married
+```
+Здесь, как раз фигурирует определенный нами параметр status и значение фильтруемой позиции married. Если кликнуть на другую позицию, то значение параметра status изменится:
+```http request
+http://127.0.0.1:8000/admin/women/women/?status=single
+```
+Нам осталось только воспользоваться этим параметром и в зависимости от его значения возвратить требуемые записи в методе queryset(). Это можно сделать следующим образом:
+```python
+# women/admin.py
+class MarriedFilter(admin.SimpleListFilter):
+    ...
+    def queryset(self, request, queryset):
+        if self.value() == 'married':
+            return queryset.filter(husband__isnull=False)
+        elif self.value() == 'single':
+            return queryset.filter(husband__isnull=True)
+```
+Мы здесь с помощью метода value() извлекаем значение параметра status и при значении 'married' выбираем только замужних женщин (у них поле husband принимает значение отличное от null). А при значении ‘single’ только незамужних.
+
+Переходим в админ-панель и видим, что наш фильтр работает, как и было задумано. 
