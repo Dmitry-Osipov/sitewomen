@@ -99,12 +99,16 @@ def add_page(request: HttpRequest) -> HttpResponse:
     Функция представления служит для добавления статьи про известную женщину.
 
     :param request: Запрос пользователя.
-    :return: Форма добавления статьи.
+    :return: Форма добавления статьи. Если статья добавлена в БД, происходит перенаправление на главную страницу сайта.
     """
     if request.method == 'POST':
         form = AddPostForm(request.POST)
         if form.is_valid():
-            print(form.cleaned_data)
+            try:
+                Women.objects.create(**form.cleaned_data)
+                return redirect('home')
+            except:
+                form.add_error(None, 'Ошибка добавления поста')
     else:
         form = AddPostForm()
 
