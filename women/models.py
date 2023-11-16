@@ -1,3 +1,4 @@
+from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.db import models
 from django.template.defaultfilters import slugify
 from django.urls import reverse
@@ -46,7 +47,8 @@ class Women(models.Model):
     title - VARCHAR - обязательное текстовое поле (содержит одну сроку) заголовка (имя женщины), максимальная длина -
     255 символов;\n
     slug - SLUG - обязательное уникальное (unique=True) индексируемое (db_index=True, нужно, чтобы был более быстрый
-    выбор статей из БД) поле максимальной длины 255 символов - уникальный идентификатор записи;\n
+    выбор статей из БД) поле минимальной длины 5 символов и максимальной длины 100 символов - уникальный идентификатор
+    записи;\n
     content - TEXT - необязательное (blank=True) текстовое поле (содержит целое текстовое поле) c содержимым статьи;\n
     time_create - DATETIME - обязательное поле, содержащее время добавления записи в БД, во время первого появления
     конкретной записи автоматически проставляет время (auto_now_add=True);\n
@@ -80,8 +82,11 @@ class Women(models.Model):
         DRAFT = 0, 'Черновик'
         PUBLISHED = 1, 'Опубликовано'
 
-    title = models.CharField(max_length=255, verbose_name='Заголовок')
-    slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name='Slug')
+    title = models.CharField(max_length=255, verbose_name='Заголовок', validators=[])
+    slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name='Slug', validators=[
+        MinLengthValidator(5, message='Минимум 5 символов'),
+        MaxLengthValidator(100, message='Максимум 100 символов'),
+    ])
     content = models.TextField(blank=True, verbose_name='Текст статьи')
     time_create = models.DateTimeField(auto_now_add=True, verbose_name='Время создания')
     time_update = models.DateTimeField(auto_now=True, verbose_name='Время обновления')
@@ -90,7 +95,7 @@ class Women(models.Model):
     cat = models.ForeignKey('Category', on_delete=models.PROTECT, related_name='posts', verbose_name='Категория')
     tags = models.ManyToManyField('TagPost', blank=True, related_name='tags', verbose_name='Тег')
     husband = models.OneToOneField('Husband', on_delete=models.SET_NULL, null=True, blank=True,
-                                   related_name='wuman', verbose_name='Муж')
+                                   related_name='woman', verbose_name='Муж')
 
     objects = models.Manager()
     published = PublishedManager()
