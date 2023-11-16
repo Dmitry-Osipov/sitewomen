@@ -4,6 +4,7 @@ from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
 
+from .forms import AddPostForm
 from .models import *
 
 # Опишем главное меню сайта с помощью списка из словарей с маршрутом к соответствующей странице:
@@ -98,9 +99,22 @@ def add_page(request: HttpRequest) -> HttpResponse:
     Функция представления служит для добавления статьи про известную женщину.
 
     :param request: Запрос пользователя.
-    :return: Текст про добавление статьи.
+    :return: Форма добавления статьи.
     """
-    return render(request, 'women/addpage.html', context={'menu': menu, 'title': 'Добавление статьи'})
+    if request.method == 'POST':
+        form = AddPostForm(request.POST)
+        if form.is_valid():
+            print(form.cleaned_data)
+    else:
+        form = AddPostForm()
+
+    data = {
+        'menu': menu,
+        'title': 'Добавление статьи',
+        'form': form,
+    }
+
+    return render(request, 'women/addpage.html', context=data)
 
 
 def contact(request: HttpRequest) -> HttpResponse:
