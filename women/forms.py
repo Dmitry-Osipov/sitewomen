@@ -79,5 +79,5 @@ class AddPostForm(forms.Form):
         content = self.cleaned_data['content']
         allowed_chars = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЫЪЭЮЯабвгдеёжзийклмнопрстуфхцчшщьыъэюя- '
 
-        if not (set(content) <= set(allowed_chars)):
+        if not all(char in allowed_chars for char in content):
             raise ValidationError('Должны присутствовать только русские символы, дефис и пробел.')
