@@ -100,7 +100,7 @@ def add_page(request: HttpRequest) -> HttpResponse:
     :param request: Запрос пользователя.
     :return: Текст про добавление статьи.
     """
-    return HttpResponse('Добавление статьи')
+    return render(request, 'women/addpage.html', context={'menu': menu, 'title': 'Добавление статьи'})
 
 
 def contact(request: HttpRequest) -> HttpResponse:
