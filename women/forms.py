@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.utils.deconstruct import deconstructible
 
-from .models import Category, Husband, Women
+from .models import *
 
 
 @deconstructible
@@ -82,3 +82,10 @@ class AddPostForm(forms.ModelForm):
             raise ValidationError('Длина превышает 50 символов.')
 
         return title
+
+
+class UploadFileForm(forms.Form):
+    """
+    Несвязанный с моделью класс формы предназначен для сохранения графических файлов.
+    """
+    file = forms.ImageField(label='Файл')

@@ -4,7 +4,7 @@ from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
 
-from .forms import AddPostForm
+from .forms import *
 from .models import *
 
 # Опишем главное меню сайта с помощью списка из словарей с маршрутом к соответствующей странице:
@@ -37,17 +37,37 @@ def index(request: HttpRequest) -> HttpResponse:
     return render(request, 'women/index.html', context=data)
 
 
+def handle_uploaded_file(file):
+    """
+    Функция загружает файл любого расширения по частям в директорию "uploads" корневой папки.
+
+    :param file: Файл, передаваемый пользователем.
+    """
+    with open(f'uploads/{file.name}', 'wb+') as destination:
+        for chunk in file.chunks():
+            destination.write(chunk)
+
+
 def about(request: HttpRequest) -> HttpResponse:
     """
     Функция представления служит для отображения страницы о сайте.
 
     :param request: Запрос пользователя.
-    :return: HTML-страница с заголовком первого уровня. Информационная страница о сайте.
+    :return: Страница загрузки графического файла на машину.
     """
+    if request.method == 'POST':
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            handle_uploaded_file(form.cleaned_data.get('file'))
+    else:
+        form = UploadFileForm()
+
     data = {
         'title': 'О сайте',
         'menu': menu,
+        'form': form,
     }
+
     return render(request, 'women/about.html', context=data)
 
 
