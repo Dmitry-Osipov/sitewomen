@@ -94,7 +94,7 @@ def show_category(request: HttpRequest, cat_slug: models.SlugField) -> HttpRespo
     return render(request, 'women/index.html', context=data)
 
 
-def add_page(request: HttpRequest) -> HttpResponse:
+def add_page(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
     """
     Функция представления служит для добавления статьи про известную женщину.
 
@@ -104,11 +104,8 @@ def add_page(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         form = AddPostForm(request.POST)
         if form.is_valid():
-            try:
-                Women.objects.create(**form.cleaned_data)
-                return redirect('home')
-            except:
-                form.add_error(None, 'Ошибка добавления поста')
+            form.save()
+            return redirect('home')
     else:
         form = AddPostForm()
 

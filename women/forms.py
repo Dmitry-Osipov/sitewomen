@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.utils.deconstruct import deconstructible
 
-from .models import Category, Husband
+from .models import Category, Husband, Women
 
 
 @deconstructible
@@ -33,51 +33,52 @@ class RussianValidator:
         :param value: Введённые данные.
         :raises ValidationError: Сообщение об ошибке.
         """
-        if not (set(value) <= set(self.ALLOWED_CHARS)):
+        if not all(char in self.ALLOWED_CHARS for char in value):
             raise ValidationError(self.message, code=self.code)
 
 
-class AddPostForm(forms.Form):
+class AddPostForm(forms.ModelForm):
     """
     Класс описывает формы добавления статьи в модель Women.
 
     Атрибуты:\n
-    title - обязательное текстовое поле заголовка минимальной длины 5 символов и максимальной длины 255 символов, также
-    поле дополнительно содержит кастомные сообщения об ошибках и кастомный валидатор;\n
-    slug - обязательное уникальное индексируемое поле минимальной длины 5 символов и максимальной длины 100 символов -
-    уникальный идентификатор записи - имеет дополнительные валидаторы на уровне клиента и сервера;\n
-    content - необязательное (required=False) текстовое поле c содержимым статьи;\n
-    is_published - необязательное поле показывает, опубликована ли статья;\n
     cat - обязательное поле - категория поста;\n
     husband - необязательное поле, определяющее наличие мужа.
     """
-    title = forms.CharField(error_messages={
-        'min_length': 'Слишком короткий заголовок',
-        'required': 'Без заголовка никак',
-    },
-        validators=[
-            RussianValidator(),
-        ],
-        min_length=5, max_length=255, widget=forms.TextInput(attrs={'class': 'form-input'}), label='Заголовок')
-    slug = forms.SlugField(max_length=255, label='URL', validators=[
-        MinLengthValidator(5, message='Минимум 5 символов'),
-        MaxLengthValidator(100, message='Максимум 100 символов'),
-    ])
-    content = forms.CharField(widget=forms.Textarea(attrs={'cols': 50, 'rows': 5}), required=False, label='Контент')
-    is_published = forms.BooleanField(required=False, initial=True, label='Статус')
+
     cat = forms.ModelChoiceField(queryset=Category.objects.all(), empty_label='Категория не выбрана', label='Категория')
     husband = forms.ModelChoiceField(queryset=Husband.objects.all(), required=False, empty_label='Не замужем', label='Муж')
 
-    def clean_content(self):
+    class Meta:
         """
-        Метод-валидатор предназначен для отлова недопустимых символов. По факту является заменой класса RussianValidator,
-        который следует использовать только в случае, если валидатор нужен часто. Если данная проверка является единичным
-        случаем, то следует использовать функцию с синтаксисом: clean_<название поля>.
+        Вложенный класс предназначен для упрощённой связи формы с моделью.
 
-        :raises ValidatorError: Сообщение об ошибке.
+        Атрибуты:\n
+        model - models.Model - описывает взаимосвязь формы (AddPostForm) с моделью (Women);\n
+        fields - tuple - поля, которые будут отображаться в форме, по умолчанию все. Т.е. автоматически в форме появятся
+        все поля из Women, кроме тех, что заполняются автоматически;\n
+        widgets - dict - виджеты для определённых полей;\n
+        labels - dict - даём нормальные наименования определённых полей для клиента.
         """
-        content = self.cleaned_data['content']
-        allowed_chars = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЫЪЭЮЯабвгдеёжзийклмнопрстуфхцчшщьыъэюя- '
+        model = Women
+        fields = ('title', 'slug', 'content', 'is_published', 'cat', 'husband', 'tags')
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-input'}),
+            'content': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
+        }
+        labels = {'slug': 'URL'}
 
-        if not all(char in allowed_chars for char in content):
-            raise ValidationError('Должны присутствовать только русские символы, дефис и пробел.')
+    def clean_title(self) -> forms.CharField:
+        """
+        Метод-валидатор предназначен для отлова недопустимых заголовков. По факту является заменой класса
+        RussianValidator, который следует использовать только в случае, если валидатор нужен часто. Если данная проверка
+        является единичным случаем, то следует использовать функцию с синтаксисом: clean_<название поля>.
+
+        :return: Заголовок.
+        :raises ValidationError: Ошибка длины заголовка.
+        """
+        title = self.cleaned_data.get('title')
+        if len(title) > 50:
+            raise ValidationError('Длина превышает 50 символов.')
+
+        return title
