@@ -14,8 +14,10 @@ Including another URLconf
     1. Import the includes() function: from django.urls import includes, path
     2. Add a URL to urlpatterns:  path('blog/', includes('blog.urls'))
 """
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from sitewomen import settings
 
 from women import views
 
@@ -27,6 +29,10 @@ urlpatterns = [
     # приложения в файле urls.py. Если передать суффикс, то он будет добавлен ко всем маршрутам, что мы подключаем.
     path('__debug__/', include('debug_toolbar.urls')),  # Подключаем url для django debug toolbar.
 ]
+
+if settings.DEBUG:  # Связываем URL с маршрутом в режиме отладки (в боевом режиме сервер и так будет иметь необходимые
+    # настройки).
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 handler404 = views.page_not_found   # Переменной-перехватчику присваиваем ссылку на функцию представления при 404 ошибке.
 # Прим.: все перехватчики исключений работают только при выключенном DEBUG.

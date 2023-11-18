@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.http import HttpRequest
+from django.utils.safestring import mark_safe, SafeString
 
 from .models import Women, Category
 
@@ -52,6 +53,9 @@ class WomenAdmin(admin.ModelAdmin):
     Атрибуты:\n
     fields - tuple - список полей, которые отображаются в форме изменения и добавления конкретного поста. Аналогом будет
     атрибут exclude - коллекция исключает поля;\n
+    readonly_fields - tuple - список полей, доступных только для чтения. ВАЖНО: можно добавить только необязательные поля, иначе
+    мы не сможем прописать их при добавлении статьи - приведёт к непредсказуемому поведению и ошибке в итоге. Либо можно
+    обойти проблемы, например, функцией slugify (не поддерживает кириллицу).;\n
     prepopulated_fields - dict - словарь с полями, заполняющимися автоматически при добавлении новой записи;\n
     filter_horizontal - tuple - список значений внутри указанной коллекции будет доступен для более красивого и
     упрощённого добавления в БД;\n
@@ -63,15 +67,14 @@ class WomenAdmin(admin.ModelAdmin):
     list_per_page - int - максимальное количество отображаемых статей (пагинация реализуется автоматически);\n
     actions - tuple - список действий (посредством функций);\n
     search_fields - tuple - список полей, по которым будет осуществляться поиск статьи по символам;\n
-    list_filter - tuple - список отвечает за специальный блок, в котором можно указать фильтрацию по указанным полям.
+    list_filter - tuple - список отвечает за специальный блок, в котором можно указать фильтрацию по указанным полям;\n
+    save_on_top - bool - флаг действий сохранения и удаления на верхней части админ-панели.
     """
-    fields = ('title', 'slug', 'content', 'cat', 'husband', 'tags')  # Аналог exclude - исключает выбранные поля.
-    # readonly_fields = ('slug', )  # Список полей, доступных только для чтения. ВАЖНО: можно добавить только
-    # необязательные поля, иначе мы не сможем прописать их при добавлении статьи - приведёт к непредсказуемому поведению
-    # и ошибке в итоге. Либо можно обойти проблемы, например, функцией slugify (не поддерживает кириллицу).
+    fields = ('title', 'slug', 'content', 'photo', 'post_photo', 'cat', 'husband', 'tags')  # Аналог exclude - исключает выбранные поля.
+    readonly_fields = ('post_photo', )
     prepopulated_fields = {'slug': ('title', )}  # ВАЖНО: slug не может быть одновременно и изменяемым, и автозаполняемым.
     filter_horizontal = ('tags', )  # Аналог filter_vertical.
-    list_display = ('title', 'time_create', 'is_published', 'cat', 'brief_info')
+    list_display = ('title', 'post_photo', 'time_create', 'is_published', 'cat')
     list_display_links = ('title', )
     ordering = ('time_create', 'title')
     list_editable = ('is_published', )  # ВАЖНО: редактируемое поле не может быть кликабельным.
@@ -81,17 +84,20 @@ class WomenAdmin(admin.ModelAdmin):
     # ибо это внешний ключ). Если требуется всё же искать через категорию, то требуется указать поля связанной таблицы
     # либо люкапы: "cat__name" - поиск через категорию, "title__startswith" - поиск фрагмента только с начала строки.
     list_filter = (MarriedFilter, 'cat__name', 'is_published')
+    save_on_top = True
 
-    @admin.display(description='Краткое описание', ordering='content')
-    def brief_info(self, women: Women) -> str:
+    @admin.display(description='Изображение')
+    def post_photo(self, women: Women) -> SafeString | str:
         """
-        Метод отвечает за создание дополнительного поля с указанием длины блока content конкретной записи. Дополнительное
-        поле в БД отсутствует и не сохраняется туда.
+        Функция отображения фото поста в админ-панели.
 
         :param women: Таблица women_women базы данных.
-        :return: Дополнительное поле с информацией о количестве символов блока content конкретной записи.
+        :return: Неэкранированный HTML-тег или строку об отсутствии фото.
         """
-        return f'Описание {len(women.content)} символов.'
+        if women.photo:
+            return mark_safe(f'<img src="{women.photo.url}" width=50>')
+
+        return 'Без фото'
 
     @admin.action(description='Опубликовать выбранные записи')
     def set_published(self, request: HttpRequest, queryset) -> None:
