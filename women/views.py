@@ -37,15 +37,15 @@ def index(request: HttpRequest) -> HttpResponse:
     return render(request, 'women/index.html', context=data)
 
 
-def handle_uploaded_file(file):
-    """
-    Функция загружает файл любого расширения по частям в директорию "uploads" корневой папки.
-
-    :param file: Файл, передаваемый пользователем.
-    """
-    with open(f'uploads/{file.name}', 'wb+') as destination:
-        for chunk in file.chunks():
-            destination.write(chunk)
+# def handle_uploaded_file(file):
+#     """
+#     Функция загружает файл любого расширения по частям в директорию "uploads" корневой папки.
+#
+#     :param file: Файл, передаваемый пользователем.
+#     """
+#     with open(f'uploads/{file.name}', 'wb+') as destination:
+#         for chunk in file.chunks():
+#             destination.write(chunk)
 
 
 def about(request: HttpRequest) -> HttpResponse:
@@ -58,7 +58,9 @@ def about(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            handle_uploaded_file(form.cleaned_data.get('file'))
+            # handle_uploaded_file(form.cleaned_data.get('file')) - заменили функцию выше на встроенный функционал.
+            fp = UploadFiles(file=form.cleaned_data.get('file'))
+            fp.save()
     else:
         form = UploadFileForm()
 
@@ -122,7 +124,7 @@ def add_page(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
     :return: Форма добавления статьи. Если статья добавлена в БД, происходит перенаправление на главную страницу сайта.
     """
     if request.method == 'POST':
-        form = AddPostForm(request.POST)
+        form = AddPostForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect('home')

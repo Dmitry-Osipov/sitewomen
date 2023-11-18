@@ -49,6 +49,8 @@ class Women(models.Model):
     slug - SLUG - обязательное уникальное (unique=True) индексируемое (db_index=True, нужно, чтобы был более быстрый
     выбор статей из БД) поле минимальной длины 5 символов и максимальной длины 100 символов - уникальный идентификатор
     записи;\n
+    photo - VARCHAR - необязательное поле, по умолчанию NULL, - фото известной женщины, находящееся в директории по году,
+    месяцу и дате добавления;\n
     content - TEXT - необязательное (blank=True) текстовое поле (содержит целое текстовое поле) c содержимым статьи;\n
     time_create - DATETIME - обязательное поле, содержащее время добавления записи в БД, во время первого появления
     конкретной записи автоматически проставляет время (auto_now_add=True);\n
@@ -87,6 +89,7 @@ class Women(models.Model):
         MinLengthValidator(5, message='Минимум 5 символов'),
         MaxLengthValidator(100, message='Максимум 100 символов'),
     ])
+    photo = models.ImageField(upload_to='photos/%Y-%m-%d', default=None, null=True, blank=True, verbose_name='Фото')
     content = models.TextField(blank=True, verbose_name='Текст статьи')
     time_create = models.DateTimeField(auto_now_add=True, verbose_name='Время создания')
     time_update = models.DateTimeField(auto_now=True, verbose_name='Время обновления')
@@ -229,3 +232,13 @@ class Husband(models.Model):
         :return: Имя мужа.
         """
         return self.name
+
+
+class UploadFiles(models.Model):
+    """
+    Класс модели для загружаемых файлов в БД.
+
+    Атрибуты:\n
+    file - обязательное поле хранения файла (аргументом принимает директорию сохранения файла).
+    """
+    file = models.FileField(upload_to='uploads_model')

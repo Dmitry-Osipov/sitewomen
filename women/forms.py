@@ -61,7 +61,7 @@ class AddPostForm(forms.ModelForm):
         labels - dict - даём нормальные наименования определённых полей для клиента.
         """
         model = Women
-        fields = ('title', 'slug', 'content', 'is_published', 'cat', 'husband', 'tags')
+        fields = ('title', 'slug', 'content', 'photo', 'is_published', 'cat', 'husband', 'tags')
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-input'}),
             'content': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
@@ -87,5 +87,8 @@ class AddPostForm(forms.ModelForm):
 class UploadFileForm(forms.Form):
     """
     Несвязанный с моделью класс формы предназначен для сохранения графических файлов.
+
+    Атрибут:\n
+    file - графический файл.
     """
-    file = forms.ImageField(label='Файл')
+    file = forms.ImageField(label='Изображение')
