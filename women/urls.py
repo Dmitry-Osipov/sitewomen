@@ -9,9 +9,9 @@ register_converter(FourDigitYearConverter, 'year4')  # Регистрируем 
 # сам конвертер, второй аргумент - имя конвертера для urlpatterns.
 
 urlpatterns = [  # В этой коллекции можно прописать сколько угодно маршрутов для страниц отображения клиенту.
-    path('', index, name='home'),
+    path('', WomenHome.as_view(), name='home'),
     path('about/', about, name='about'),
-    path('addpage/', add_page, name='add_page'),
+    path('addpage/', AddPage.as_view(), name='add_page'),
     path('contact/', contact, name='contact'),
     path('login/', login, name='login'),
     path('post/<slug:post_slug>/', show_post, name='post'),

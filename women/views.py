@@ -3,6 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.views import View
+from django.views.generic import TemplateView
 
 from .forms import *
 from .models import *
@@ -16,25 +18,37 @@ menu = [{'title': 'О сайте', 'url_name': 'about'},
 
 
 # Create your views here.
-def index(request: HttpRequest) -> HttpResponse:
+class WomenHome(TemplateView):
     """
-    Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/.
+    Класс представления отвечает за отображение базовой страницы сайта.
 
-    :param request: Специальный класс, который содержит информацию о запросе. Через эту переменную нам
-    доступна вся информация о запросе.
-    :return: Экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
-    передаётся строкой аргументом).
+    Атрибуты:\n
+    template_name - str - маршрут для отображения страницы;\n
+    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.)
     """
-    posts = Women.published.all().select_related('cat')
-
-    data = {
+    template_name = 'women/index.html'
+    extra_context = {
         'title': 'Главная страница',
         'menu': menu,
-        'posts': posts,
+        'posts': Women.published.all().select_related('cat'),
         'cat_selected': 0,
     }
 
-    return render(request, 'women/index.html', context=data)
+    # def get_context_data(self, **kwargs):
+    #     """
+    #     Метод срабатывает в момент прихода GET-запроса. Является аналогом для атрибута extra_context, позволяя более
+    #     тонко настроить работу с клиентом. К примеру сейчас в адресной строке можно будет прописать категорию, которая
+    #     подсветится в меню выбора категорий.
+    #
+    #     :param kwargs: Контекст для отображения на странице (например, меню, заголовок и т.п.)
+    #     :return: Контекст запроса.
+    #     """
+    #     context = super().get_context_data(**kwargs)
+    #     context['title'] = 'Главная страница'
+    #     context['menu'] = menu
+    #     context['posts'] = Women.published.all().select_related('cat')
+    #     context['cat_selected'] = int(self.request.GET.get('cat_id', 0))
+    #     return context
 
 
 # def handle_uploaded_file(file):
@@ -116,28 +130,47 @@ def show_category(request: HttpRequest, cat_slug: models.SlugField) -> HttpRespo
     return render(request, 'women/index.html', context=data)
 
 
-def add_page(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
+class AddPage(View):
     """
-    Функция представления служит для добавления статьи про известную женщину.
+    Класс представления служит для добавления статьи про известную женщину.
+    """
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """
+        Функция отвечает за GET-запрос.
 
-    :param request: Запрос пользователя.
-    :return: Форма добавления статьи. Если статья добавлена в БД, происходит перенаправление на главную страницу сайта.
-    """
-    if request.method == 'POST':
+        :param request: Запрос пользователя.
+        :return: Форма добавления статьи.
+        """
+        form = AddPostForm()
+
+        data = {
+            'menu': menu,
+            'title': 'Добавление статьи',
+            'form': form,
+        }
+
+        return render(request, 'women/addpage.html', context=data)
+
+    def post(self, request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
+        """
+        Функция отвечает за POST-запрос.
+
+        :param request: Запрос пользователя.
+        :return: Добавление статьи в БД, если удачно, перенаправление на главную страницу сайта.
+        """
         form = AddPostForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect('home')
-    else:
-        form = AddPostForm()
 
-    data = {
-        'menu': menu,
-        'title': 'Добавление статьи',
-        'form': form,
-    }
+        data = {
+            'menu': menu,
+            'title': 'Добавление статьи',
+            'form': form,
+        }
 
-    return render(request, 'women/addpage.html', context=data)
+        return render(request, 'women/addpage.html', context=data)
+
 
 
 def contact(request: HttpRequest) -> HttpResponse:
@@ -183,6 +216,52 @@ def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotF
     :return: Страница с сообщением об ошибке.
     """
     return HttpResponseNotFound('<h1>Страница не найдена</h1>')
+
+
+# Функции представления, замененные классами представления. По количеству лишнего кода чётко видны преимущества классов:
+# def index(request: HttpRequest) -> HttpResponse:
+#     """
+#     Функция представления, которая отвечает за отображение HTML-страницы в браузере по адресу 127.0.0.1:8000/.
+#
+#     :param request: Специальный класс, который содержит информацию о запросе. Через эту переменную нам
+#     доступна вся информация о запросе.
+#     :return: Экземпляр класса, который автоматически формирует нужный заголовок ответа (содержимое ответа
+#     передаётся строкой аргументом).
+#     """
+#     posts = Women.published.all().select_related('cat')
+#
+#     data = {
+#         'title': 'Главная страница',
+#         'menu': menu,
+#         'posts': posts,
+#         'cat_selected': 0,
+#     }
+#
+#     return render(request, 'women/index.html', context=data)
+#
+#
+# def add_page(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
+#     """
+#     Функция представления служит для добавления статьи про известную женщину.
+#
+#     :param request: Запрос пользователя.
+#     :return: Форма добавления статьи. Если статья добавлена в БД, происходит перенаправление на главную страницу сайта.
+#     """
+#     if request.method == 'POST':
+#         form = AddPostForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             form.save()
+#             return redirect('home')
+#     else:
+#         form = AddPostForm()
+#
+#     data = {
+#         'menu': menu,
+#         'title': 'Добавление статьи',
+#         'form': form,
+#     }
+#
+#     return render(request, 'women/addpage.html', context=data)
 
 
 # Все функции представления ниже нужны только для отображения базовых возможностей Django.
