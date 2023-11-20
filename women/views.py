@@ -180,7 +180,7 @@ class AddPage(FormView):
     Атрибуты:\n
     form_class - forms.ModelForm - переменная ссылается на класс формы;\n
     template_name - str - маршрут для отображения страницы;\n
-    success_url - str - полный маршрут страницы;\n
+    success_url - str - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
     extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
     """
     form_class = AddPostForm
