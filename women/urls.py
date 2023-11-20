@@ -14,9 +14,9 @@ urlpatterns = [  # В этой коллекции можно прописать 
     path('addpage/', AddPage.as_view(), name='add_page'),
     path('contact/', contact, name='contact'),
     path('login/', login, name='login'),
-    path('post/<slug:post_slug>/', show_post, name='post'),
+    path('post/<slug:post_slug>/', ShowPost.as_view(), name='post'),
     path('category/<slug:cat_slug>/', WomenCategory.as_view(), name='category'),
-    path('tag/<slug:tag_slug>', show_tag_postlist, name='tag'),
+    path('tag/<slug:tag_slug>', TagPostList.as_view(), name='tag'),
 
     # Ниже используются пути и функции для представления базовых возможностей Django.
     path('cats/<int:cat_id>/', categories, name='cats_id'),  # По стандартам отрасли следует прописывать слэш в конце суффикса,

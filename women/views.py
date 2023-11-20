@@ -4,7 +4,7 @@ from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views import View
-from django.views.generic import TemplateView, ListView
+from django.views.generic import TemplateView, ListView, DetailView
 
 from .forms import *
 from .models import *
@@ -38,6 +38,11 @@ class WomenHome(ListView):
     }
 
     def get_queryset(self):
+        """
+        Метод вызывает выборку всех опубликованных записей, которые содержат поле категории.
+
+        :return: Коллекция отобранных записей.
+        """
         return Women.published.all().select_related('cat')
 
     # def get_context_data(self, **kwargs):
@@ -93,25 +98,42 @@ def about(request: HttpRequest) -> HttpResponse:
     return render(request, 'women/about.html', context=data)
 
 
-def show_post(request: HttpRequest, post_slug: models.SlugField) -> HttpResponse:
+class ShowPost(DetailView):
     """
-    Функция представления служит для отображения конкретного поста о женщине.
+    Класс представления отвечает за отображение конкретного поста.
 
-    :param request: Запрос пользователя.
-    :param post_slug: Уникальный идентификатор записи.
-    :return: Запись из БД про известную женщину.
-    :raises Http404: Ошибка 404 на сайте, если статья с нужным слагом не была найдена в БД.
+    Атрибуты:\n
+    template_name - str - маршрут для отображения страницы;\n
+    slug_url_kwarg - str - переменная, которая фигурирует в URL-маршруте;\n
+    context_object_name - str - название переменной выборки из БД в HTML-шаблоне;\n
     """
-    post = get_object_or_404(Women, slug=post_slug)
+    # model = Women - атрибут не имеет смысла, т.к. модель уже участвует в выборке в методе get_object.
+    template_name = 'women/post.html'
+    slug_url_kwarg = 'post_slug'  # Если фигурирует pk, то переменная будет pk_url_kwarg.
+    context_object_name = 'post'
 
-    data = {
-        'title': post.title,
-        'menu': menu,
-        'post': post,
-        'cat_selected': 1,
-    }
+    def get_context_data(self, **kwargs):
+        """
+        Метод срабатывает в момент прихода GET-запроса. Является аналогом для атрибута extra_context, позволяя более
+        тонко настроить работу с клиентом.
 
-    return render(request, 'women/post.html', context=data)
+        :param kwargs: Контекст для отображения на странице (например, меню, заголовок и т.п.)
+        :return: Контекст запроса.
+        """
+        context = super().get_context_data(**kwargs)
+        context['title'] = context['post'].title
+        context['menu'] = menu
+        return context
+
+    def get_object(self, queryset=None):
+        """
+        Метод отображает только опубликованные записи. Для черновика вылетит ошибка 404.
+
+        :param queryset: Выборка, по умолчанию никакой.
+        :return: Опубликованную статью.
+        :raises Http404: Ошибка 404.
+        """
+        return get_object_or_404(Women.published, slug=self.kwargs[self.slug_url_kwarg])
 
 
 class WomenCategory(ListView):
@@ -128,6 +150,11 @@ class WomenCategory(ListView):
     allow_empty = False
 
     def get_queryset(self):
+        """
+        Метод вызывает выборку записей по фильтру "slug" у категории.
+
+        :return: Коллекция отобранных записей.
+        """
         return Women.published.filter(cat__slug=self.kwargs['cat_slug']).select_related('cat')
 
     def get_context_data(self, **kwargs):
@@ -209,18 +236,41 @@ def login(request: HttpRequest) -> HttpResponse:
     return HttpResponse('Авторизация')
 
 
-def show_tag_postlist(request: HttpRequest, tag_slug: models.SlugField) -> HttpResponse:
-    tag = get_object_or_404(TagPost, slug=tag_slug)
-    posts = tag.tags.filter(is_published=Women.Status.PUBLISHED).select_related('cat')
+class TagPostList(ListView):
+    """
+    Класс представления отвечает за отображение тегов на базовой странице сайта.
 
-    data = {
-        'title': f'Тег: {tag.tag}',
-        'menu': menu,
-        'posts': posts,
-        'cat_selected': None,
-    }
+    Атрибуты:\n
+    template_name - str - маршрут для отображения страницы;\n
+    context_object_name - str - название переменной выборки из БД в HTML-шаблоне;\n
+    allow_empty - bool - при пустом списке "posts" генерируется исключение 404.
+    """
+    template_name = 'women/index.html'
+    context_object_name = 'posts'
+    allow_empty = False
 
-    return render(request, 'women/index.html', context=data)
+    def get_context_data(self, *, object_list=None, **kwargs):
+        """
+        Метод срабатывает в момент прихода GET-запроса. Является аналогом для атрибута extra_context, позволяя более
+        тонко настроить работу с клиентом.
+
+        :param kwargs: Контекст для отображения на странице (например, меню, заголовок и т.п.)
+        :return: Контекст запроса.
+        """
+        context = super().get_context_data(**kwargs)
+        tag = TagPost.objects.get(slug=self.kwargs['tag_slug'])
+        context['title'] = 'Тег: ' + tag.tag
+        context['menu'] = menu
+        context['cat_selected'] = None
+        return context
+
+    def get_queryset(self):
+        """
+        Метод вызывает выборку записей по фильтру "slug" у тега.
+
+        :return: Коллекция отобранных записей.
+        """
+        return Women.published.filter(tags__slug=self.kwargs['tag_slug']).select_related('cat')
 
 
 def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotFound:
@@ -300,6 +350,41 @@ def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotF
 #     }
 #
 #     return render(request, 'women/index.html', context=data)
+#
+#
+# def show_tag_postlist(request: HttpRequest, tag_slug: models.SlugField) -> HttpResponse:
+#     tag = get_object_or_404(TagPost, slug=tag_slug)
+#     posts = tag.tags.filter(is_published=Women.Status.PUBLISHED).select_related('cat')
+#
+#     data = {
+#         'title': f'Тег: {tag.tag}',
+#         'menu': menu,
+#         'posts': posts,
+#         'cat_selected': None,
+#     }
+#
+#     return render(request, 'women/index.html', context=data)
+#
+#
+# def show_post(request: HttpRequest, post_slug: models.SlugField) -> HttpResponse:
+#     """
+#     Функция представления служит для отображения конкретного поста о женщине.
+#
+#     :param request: Запрос пользователя.
+#     :param post_slug: Уникальный идентификатор записи.
+#     :return: Запись из БД про известную женщину.
+#     :raises Http404: Ошибка 404 на сайте, если статья с нужным слагом не была найдена в БД.
+#     """
+#     post = get_object_or_404(Women, slug=post_slug)
+#
+#     data = {
+#         'title': post.title,
+#         'menu': menu,
+#         'post': post,
+#         'cat_selected': 1,
+#     }
+#
+#     return render(request, 'women/post.html', context=data)
 
 
 # Все функции представления ниже нужны только для отображения базовых возможностей Django.
