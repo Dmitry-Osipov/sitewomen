@@ -4,7 +4,7 @@ from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views import View
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView
 
 from .forms import *
 from .models import *
@@ -18,21 +18,27 @@ menu = [{'title': 'О сайте', 'url_name': 'about'},
 
 
 # Create your views here.
-class WomenHome(TemplateView):
+class WomenHome(ListView):
     """
     Класс представления отвечает за отображение базовой страницы сайта.
 
     Атрибуты:\n
+    model - models.Model - модель, из которой будет получен QuerySet;\n
     template_name - str - маршрут для отображения страницы;\n
-    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.)
+    context_object_name - str - название переменной выборки из БД в HTML-шаблоне;\n
+    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
     """
+    model = Women
     template_name = 'women/index.html'
+    context_object_name = 'posts'
     extra_context = {
         'title': 'Главная страница',
         'menu': menu,
-        'posts': Women.published.all().select_related('cat'),
         'cat_selected': 0,
     }
+
+    def get_queryset(self):
+        return Women.published.all().select_related('cat')
 
     # def get_context_data(self, **kwargs):
     #     """
@@ -108,26 +114,36 @@ def show_post(request: HttpRequest, post_slug: models.SlugField) -> HttpResponse
     return render(request, 'women/post.html', context=data)
 
 
-def show_category(request: HttpRequest, cat_slug: models.SlugField) -> HttpResponse:
+class WomenCategory(ListView):
     """
-    Функция представления отвечает за отображение выбранной категории.
+    Класс представления отвечает за отображение категорий на базовой странице сайта.
 
-    :param request: Запрос пользователя.
-    :param cat_slug: Уникальный идентификатор категории.
-    :return: Страница со всеми постами подходящей категории.
-    :raises Http404: Ошибка 404 на сайте, если категория с нужным слагом не была найдена в БД.
+    Атрибуты:\n
+    template_name - str - маршрут для отображения страницы;\n
+    context_object_name - str - название переменной выборки из БД в HTML-шаблоне;\n
+    allow_empty - bool - при пустом списке "posts" генерируется исключение 404.
     """
-    category = get_object_or_404(Category, slug=cat_slug)
-    posts = Women.published.filter(cat_id=category.pk).select_related('cat')
+    template_name = 'women/index.html'
+    context_object_name = 'posts'
+    allow_empty = False
 
-    data = {
-        'title': f'Рубрика: {category.name}',
-        'menu': menu,
-        'posts': posts,
-        'cat_selected': category.pk,
-    }
+    def get_queryset(self):
+        return Women.published.filter(cat__slug=self.kwargs['cat_slug']).select_related('cat')
 
-    return render(request, 'women/index.html', context=data)
+    def get_context_data(self, **kwargs):
+        """
+        Метод срабатывает в момент прихода GET-запроса. Является аналогом для атрибута extra_context, позволяя более
+        тонко настроить работу с клиентом.
+
+        :param kwargs: Контекст для отображения на странице (например, меню, заголовок и т.п.)
+        :return: Контекст запроса.
+        """
+        context = super().get_context_data(**kwargs)
+        cat = context['posts'][0].cat
+        context['title'] = 'Категория - ' + cat.name
+        context['menu'] = menu
+        context['cat_selected'] = cat.pk
+        return context
 
 
 class AddPage(View):
@@ -262,6 +278,28 @@ def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotF
 #     }
 #
 #     return render(request, 'women/addpage.html', context=data)
+#
+#
+# def show_category(request: HttpRequest, cat_slug: models.SlugField) -> HttpResponse:
+#     """
+#     Функция представления отвечает за отображение выбранной категории.
+#
+#     :param request: Запрос пользователя.
+#     :param cat_slug: Уникальный идентификатор категории.
+#     :return: Страница со всеми постами подходящей категории.
+#     :raises Http404: Ошибка 404 на сайте, если категория с нужным слагом не была найдена в БД.
+#     """
+#     category = get_object_or_404(Category, slug=cat_slug)
+#     posts = Women.published.filter(cat_id=category.pk).select_related('cat')
+#
+#     data = {
+#         'title': f'Рубрика: {category.name}',
+#         'menu': menu,
+#         'posts': posts,
+#         'cat_selected': category.pk,
+#     }
+#
+#     return render(request, 'women/index.html', context=data)
 
 
 # Все функции представления ниже нужны только для отображения базовых возможностей Django.

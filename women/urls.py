@@ -15,7 +15,7 @@ urlpatterns = [  # В этой коллекции можно прописать 
     path('contact/', contact, name='contact'),
     path('login/', login, name='login'),
     path('post/<slug:post_slug>/', show_post, name='post'),
-    path('category/<slug:cat_slug>/', show_category, name='category'),
+    path('category/<slug:cat_slug>/', WomenCategory.as_view(), name='category'),
     path('tag/<slug:tag_slug>', show_tag_postlist, name='tag'),
 
     # Ниже используются пути и функции для представления базовых возможностей Django.
