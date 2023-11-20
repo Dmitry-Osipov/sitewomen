@@ -2,9 +2,9 @@ from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRespons
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.views import View
-from django.views.generic import TemplateView, ListView, DetailView
+from django.views.generic import TemplateView, ListView, DetailView, FormView
 
 from .forms import *
 from .models import *
@@ -173,47 +173,33 @@ class WomenCategory(ListView):
         return context
 
 
-class AddPage(View):
+class AddPage(FormView):
     """
     Класс представления служит для добавления статьи про известную женщину.
+
+    Атрибуты:\n
+    form_class - forms.ModelForm - переменная ссылается на класс формы;\n
+    template_name - str - маршрут для отображения страницы;\n
+    success_url - str - полный маршрут страницы;\n
+    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
     """
-    def get(self, request: HttpRequest) -> HttpResponse:
+    form_class = AddPostForm
+    template_name = 'women/addpage.html'
+    success_url = reverse_lazy('home')
+    extra_context = {
+        'menu': menu,
+        'title': 'Добавление статьи',
+    }
+
+    def form_valid(self, form):
         """
-        Функция отвечает за GET-запрос.
+        Метод вызывается, если все поля формы корректны.
 
-        :param request: Запрос пользователя.
-        :return: Форма добавления статьи.
+        :param form: Объект класса формы.
+        :return: Переход на страницу, определённую в success_url.
         """
-        form = AddPostForm()
-
-        data = {
-            'menu': menu,
-            'title': 'Добавление статьи',
-            'form': form,
-        }
-
-        return render(request, 'women/addpage.html', context=data)
-
-    def post(self, request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
-        """
-        Функция отвечает за POST-запрос.
-
-        :param request: Запрос пользователя.
-        :return: Добавление статьи в БД, если удачно, перенаправление на главную страницу сайта.
-        """
-        form = AddPostForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect('home')
-
-        data = {
-            'menu': menu,
-            'title': 'Добавление статьи',
-            'form': form,
-        }
-
-        return render(request, 'women/addpage.html', context=data)
-
+        form.save()
+        return super().form_valid(form)
 
 
 def contact(request: HttpRequest) -> HttpResponse:
@@ -254,7 +240,7 @@ class TagPostList(ListView):
         Метод срабатывает в момент прихода GET-запроса. Является аналогом для атрибута extra_context, позволяя более
         тонко настроить работу с клиентом.
 
-        :param kwargs: Контекст для отображения на странице (например, меню, заголовок и т.п.)
+        :param kwargs: Контекст для отображения на странице (например, меню, заголовок и т.п.).
         :return: Контекст запроса.
         """
         context = super().get_context_data(**kwargs)
