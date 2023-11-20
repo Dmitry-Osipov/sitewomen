@@ -5602,3 +5602,90 @@ class WomenCategory(ListView):
     ...
 ```
 который указывает генерировать исключение 404 если список статей пуст. Так мы сохраняем общий функционал нашего сайта.
+### 52. Класс DetailView.
+На прошлом занятии вы должны были самостоятельно создать класс TagPostList  для отображения постов по выбранному тегу. У меня получилось следующее решение:
+```python
+# women/views.py
+class TagPostList(ListView):
+    template_name = 'women/index.html'
+    context_object_name = 'posts'
+    allow_empty = False
+ 
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tag = TagPost.objects.get(slug=self.kwargs['tag_slug'])
+        context['title'] = 'Тег: ' + tag.tag
+        context['menu'] = menu
+        context['cat_selected'] = None
+        return context
+ 
+    def get_queryset(self):
+        return Women.published.filter(tags__slug=self.kwargs['tag_slug']).select_related('cat')
+```
+Вы, конечно, могли бы это сделать и по-другому. Главное, чтобы не было дублирования SQL-запросов и страница формировалась максимально быстро.
+
+Следующим шагом мы с вами создадим еще один класс для отображения отдельных постов и заменим функцию представления show_post(). Для этого хорошо подходит класс DetailView. Давайте объявим класс ShowPost после функции show_post() и унаследуем его то DetailView. В самом простом варианте его можно записать следующим образом:
+```python
+# women/views.py
+class ShowPost(DetailView):
+    model = Women
+    template_name = 'women/post.html'
+```
+Мы здесь сразу указали два атрибута: model – для модели; template_name – для используемого шаблона.
+
+Далее пока ничего прописывать в нем не будем, а перейдем к списку маршрутов (women/urls.py). Вместо строки:
+
+path('post/<slug:post_slug>/', views.show_post, name='post'),
+
+запишем:
+```python
+# women/urls.py
+...
+    path('post/<slug:post_slug>/', views.ShowPost.as_view(), name='post'),
+```
+Казалось бы, мы прописали базовый функционал. Но, при попытке просмотра какого-либо поста, возникает исключение «AttributeError». В чем проблема? Смотрите, класс DetailView по умолчанию пытается выбрать из указанной модели Women запись, используя атрибут pk или slug. Но у нас формируется маршрут с параметром post_slug из-за этого и возникает такая ошибка.
+
+В самом простом случае, мы можем в шаблоне маршрута вместо post_slug записать просто slug и тогда ошибки уже не будет. Или же, в классе ShowPost прописать атрибут:
+```python
+# women/urls.py
+class ShowPost(DetailView):
+    ...
+    slug_url_kwarg = 'post_slug'
+```
+(Если используется идентификатор, то прописывается атрибут pk_url_kwarg). Обычно, эти атрибуты опускают и в параметрах маршрутов используют ключевые слова slug – для слага и pk – для идентификаторов.
+
+Итак, у нас при попытке вывести статью отображается пустая страница. Возможно, вы уже догадались, это из-за использования параметра post внутри шаблона post.html. По умолчанию класс DetailView в шаблон передает переменную с именем object и переменную с именем модели (малыми буквами). В нашем примере – это women.
+
+Чтобы указать другое имя переменной для шаблона, мы в классе ShowPost должны прописать атрибут:
+```python
+# women/urls.py
+class ShowPost(DetailView):
+    ...
+    context_object_name = 'post'
+```
+Тогда при обновлении страницы, видим корректное содержимое поста. А если указать не существующий слаг, то автоматически будет сгенерировано исключение 404 – страница не найдена. Как видите, все делается достаточно просто.
+
+Осталось передать в шаблон заголовок title и пункты главного меню:
+```python
+# women/urls.py
+class ShowPost(DetailView):
+    ...
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = context['post']
+        context['menu'] = menu
+        return context
+```
+Что еще нам нужно поправить в этом классе? Да, сейчас происходит отображение статьи по слагу вне зависимости от статуса ее публикации (она может иметь флаг is_published=False). Давайте, это тоже исправим. Для этого в классе ShowPost нужно переопределить метод get_object(), который отвечает за извлечение записи:
+```python
+# women/urls.py
+class ShowPost(DetailView):
+    ...
+    def get_object(self, queryset=None):
+        return get_object_or_404(Women.published, slug=self.kwargs[self.slug_url_kwarg])
+```
+Мы здесь используем функцию get_object_or_404(), которая возвращает одну запись из таблицы Women менеджера published, если она будет найдена, либо сгенерирует ошибку 404 – страница не найдена.
+
+Обратите внимание, что в функции get_object_or_404() первым аргументом мы передаем менеджер published. Так тоже можно делать и это гораздо удобнее, чем прописывать отдельно дополнительное условие is_published=True. В конце концов, мы его можем не помнить, для этого и был создан отдельный менеджер published.
+
+Все, теперь наши опубликованные статьи успешно отображаются в браузере.
