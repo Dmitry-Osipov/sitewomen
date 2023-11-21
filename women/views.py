@@ -1,5 +1,7 @@
+from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect, HttpRequest
 from django.shortcuts import render, get_object_or_404
+from django.template.defaultfilters import slugify
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
@@ -42,17 +44,14 @@ def about(request: HttpRequest) -> HttpResponse:
     :param request: Запрос пользователя.
     :return: Страница загрузки графического файла на машину.
     """
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            fp = UploadFiles(file=form.cleaned_data.get('file'))
-            fp.save()
-    else:
-        form = UploadFileForm()
+    contact_list = Women.published.all()  # Получаем список всех статей.
+    paginator = Paginator(contact_list, 3)  # Создаём класс пагинации.
+    page_number = request.GET.get('page')  # Получаем номер текущей страницы.
+    page_obj = paginator.get_page(page_number)  # Получаем конкретную страницу.
 
     data = {
         'title': 'О сайте',
-        'form': form,
+        'page_obj': page_obj,
     }
 
     return render(request, 'women/about.html', context=data)
