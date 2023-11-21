@@ -1,7 +1,7 @@
-from django.urls import path, re_path, register_converter
+from django.urls import path, register_converter
 
-from .views import *
 from .converters import *
+from .views import *
 
 # Все маршруты, которые относятся к приложению women, отдельно вынесены в этот файл.
 

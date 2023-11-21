@@ -1,24 +1,15 @@
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect, HttpRequest
-from django.shortcuts import render, redirect, get_object_or_404
-from django.template.defaultfilters import slugify
-from django.template.loader import render_to_string
-from django.urls import reverse, reverse_lazy
-from django.views import View
-from django.views.generic import TemplateView, ListView, DetailView, FormView, CreateView, UpdateView
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
 from .forms import *
 from .models import *
-
-# Опишем главное меню сайта с помощью списка из словарей с маршрутом к соответствующей странице:
-menu = [{'title': 'О сайте', 'url_name': 'about'},
-        {'title': 'Добавить статью', 'url_name': 'add_page'},
-        {'title': 'Обратная связь', 'url_name': 'contact'},
-        {'title': 'Войти', 'url_name': 'login'},
-]
+from .utils import DataMixin
 
 
 # Create your views here.
-class WomenHome(ListView):
+class WomenHome(DataMixin, ListView):
     """
     Класс представления отвечает за отображение базовой страницы сайта.
 
@@ -26,16 +17,14 @@ class WomenHome(ListView):
     model - models.Model - модель, из которой будет получен QuerySet;\n
     template_name - str - маршрут для отображения страницы;\n
     context_object_name - str - название переменной выборки из БД в HTML-шаблоне;\n
-    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
+    title_page - str - заголовок страницы;\n
+    cat_selected - int - рубрика поста.
     """
     model = Women
     template_name = 'women/index.html'
     context_object_name = 'posts'
-    extra_context = {
-        'title': 'Главная страница',
-        'menu': menu,
-        'cat_selected': 0,
-    }
+    title_page = 'Главая страница'
+    cat_selected = 0
 
     def get_queryset(self):
         """
@@ -44,33 +33,6 @@ class WomenHome(ListView):
         :return: Коллекция отобранных записей.
         """
         return Women.published.all().select_related('cat')
-
-    # def get_context_data(self, **kwargs):
-    #     """
-    #     Метод срабатывает в момент прихода GET-запроса. Является аналогом для атрибута extra_context, позволяя более
-    #     тонко настроить работу с клиентом. К примеру сейчас в адресной строке можно будет прописать категорию, которая
-    #     подсветится в меню выбора категорий.
-    #
-    #     :param kwargs: Контекст для отображения на странице (например, меню, заголовок и т.п.)
-    #     :return: Контекст запроса.
-    #     """
-    #     context = super().get_context_data(**kwargs)
-    #     context['title'] = 'Главная страница'
-    #     context['menu'] = menu
-    #     context['posts'] = Women.published.all().select_related('cat')
-    #     context['cat_selected'] = int(self.request.GET.get('cat_id', 0))
-    #     return context
-
-
-# def handle_uploaded_file(file):
-#     """
-#     Функция загружает файл любого расширения по частям в директорию "uploads" корневой папки.
-#
-#     :param file: Файл, передаваемый пользователем.
-#     """
-#     with open(f'uploads/{file.name}', 'wb+') as destination:
-#         for chunk in file.chunks():
-#             destination.write(chunk)
 
 
 def about(request: HttpRequest) -> HttpResponse:
@@ -83,7 +45,6 @@ def about(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            # handle_uploaded_file(form.cleaned_data.get('file')) - заменили функцию выше на встроенный функционал.
             fp = UploadFiles(file=form.cleaned_data.get('file'))
             fp.save()
     else:
@@ -91,14 +52,13 @@ def about(request: HttpRequest) -> HttpResponse:
 
     data = {
         'title': 'О сайте',
-        'menu': menu,
         'form': form,
     }
 
     return render(request, 'women/about.html', context=data)
 
 
-class ShowPost(DetailView):
+class ShowPost(DataMixin, DetailView):
     """
     Класс представления отвечает за отображение конкретного поста.
 
@@ -121,9 +81,7 @@ class ShowPost(DetailView):
         :return: Контекст запроса.
         """
         context = super().get_context_data(**kwargs)
-        context['title'] = context['post'].title
-        context['menu'] = menu
-        return context
+        return self.get_mixin_context(context, title=context['post'].title)
 
     def get_object(self, queryset=None):
         """
@@ -136,7 +94,7 @@ class ShowPost(DetailView):
         return get_object_or_404(Women.published, slug=self.kwargs[self.slug_url_kwarg])
 
 
-class WomenCategory(ListView):
+class WomenCategory(DataMixin, ListView):
     """
     Класс представления отвечает за отображение категорий на базовой странице сайта.
 
@@ -167,20 +125,17 @@ class WomenCategory(ListView):
         """
         context = super().get_context_data(**kwargs)
         cat = context['posts'][0].cat
-        context['title'] = 'Категория - ' + cat.name
-        context['menu'] = menu
-        context['cat_selected'] = cat.pk
-        return context
+        return self.get_mixin_context(context, title='Категория - ' + cat.name, cat_selected=cat.pk)
 
 
-class AddPage(CreateView):
+class AddPage(DataMixin, CreateView):
     """
     Класс представления служит для добавления статьи про известную женщину.
 
     Атрибуты:\n
     form_class - forms.ModelForm - переменная ссылается на класс формы;\n
     template_name - str - маршрут для отображения страницы;\n
-    success_url - str - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
+    success_url - Callable - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
     extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
     """
     form_class = AddPostForm  # Можно указать аналог этого атрибута атрибутами ниже:
@@ -189,13 +144,10 @@ class AddPage(CreateView):
     template_name = 'women/addpage.html'
     success_url = reverse_lazy('home')  # Если убрать атрибут, то URL будет браться из метода get_absolute_url связанной
     # модели.
-    extra_context = {
-        'menu': menu,
-        'title': 'Добавление статьи',
-    }
+    title_page = 'Добавление статьи'
 
 
-class UpdatePage(UpdateView):
+class UpdatePage(DataMixin, UpdateView):
     """
     Класс представления служит для обновления статьи про известную женщину.
 
@@ -203,17 +155,14 @@ class UpdatePage(UpdateView):
     model - model - models.Model - связанная модель;\n
     fields - tuple - поля, которые будут отображены в форме;\n
     template_name - str - маршрут для отображения страницы;\n
-    success_url - str - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
+    success_url - Callable - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
     extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
     """
     model = Women
     fields = ('title', 'content', 'photo', 'is_published', 'cat')
     template_name = 'women/addpage.html'
     success_url = reverse_lazy('home')
-    extra_context = {
-        'menu': menu,
-        'title': 'Редактирование статьи',
-    }
+    title_page = 'Редактирование статьи'
 
 
 def contact(request: HttpRequest) -> HttpResponse:
@@ -236,7 +185,7 @@ def login(request: HttpRequest) -> HttpResponse:
     return HttpResponse('Авторизация')
 
 
-class TagPostList(ListView):
+class TagPostList(DataMixin, ListView):
     """
     Класс представления отвечает за отображение тегов на базовой странице сайта.
 
@@ -259,10 +208,7 @@ class TagPostList(ListView):
         """
         context = super().get_context_data(**kwargs)
         tag = TagPost.objects.get(slug=self.kwargs['tag_slug'])
-        context['title'] = 'Тег: ' + tag.tag
-        context['menu'] = menu
-        context['cat_selected'] = None
-        return context
+        return self.get_mixin_context(context, title='Тег: ' + tag.tag)
 
     def get_queryset(self):
         """
@@ -469,6 +415,14 @@ def main_filters(request):
     :param request: HttpRequest - запрос пользователя.
     :return: HttpResponse - HTML-страница с примерами работы различных стандартных фильтров шаблонизатора.
     """
+    # Опишем главное меню сайта с помощью списка из словарей с маршрутом к соответствующей странице:
+    menu = [
+        {'title': 'О сайте', 'url_name': 'about'},
+        {'title': 'Добавить статью', 'url_name': 'add_page'},
+        {'title': 'Обратная связь', 'url_name': 'contact'},
+        {'title': 'Войти', 'url_name': 'login'},
+    ]
+
     data = {
         'title': 'Страница о фильтрах',
         'menu': menu,
