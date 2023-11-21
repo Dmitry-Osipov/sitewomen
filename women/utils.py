@@ -15,11 +15,13 @@ class DataMixin:
     Атрибуты:\n
     title_page - str - заголовок страницы;\n
     cat_selected - int - рубрика поста;\n
-    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
+    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.);\n
+    paginate_by - int - количество записей, отображаемых на одной странице.
     """
     title_page = None
     cat_selected = None
     extra_context = {}
+    paginate_by = 5
 
     def __init__(self):
         """
