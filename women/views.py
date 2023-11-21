@@ -4,7 +4,7 @@ from django.template.defaultfilters import slugify
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.views import View
-from django.views.generic import TemplateView, ListView, DetailView, FormView
+from django.views.generic import TemplateView, ListView, DetailView, FormView, CreateView, UpdateView
 
 from .forms import *
 from .models import *
@@ -173,7 +173,7 @@ class WomenCategory(ListView):
         return context
 
 
-class AddPage(FormView):
+class AddPage(CreateView):
     """
     Класс представления служит для добавления статьи про известную женщину.
 
@@ -183,23 +183,37 @@ class AddPage(FormView):
     success_url - str - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
     extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
     """
-    form_class = AddPostForm
+    form_class = AddPostForm  # Можно указать аналог этого атрибута атрибутами ниже:
+    # model = Women - model - models.Model - связанная модель.
+    # fields = ('title', 'slug', 'content', 'is_published', 'cat') - tuple - поля, которые будут отображены в форме.
     template_name = 'women/addpage.html'
-    success_url = reverse_lazy('home')
+    success_url = reverse_lazy('home')  # Если убрать атрибут, то URL будет браться из метода get_absolute_url связанной
+    # модели.
     extra_context = {
         'menu': menu,
         'title': 'Добавление статьи',
     }
 
-    def form_valid(self, form):
-        """
-        Метод вызывается, если все поля формы корректны.
 
-        :param form: Объект класса формы.
-        :return: Переход на страницу, определённую в success_url.
-        """
-        form.save()
-        return super().form_valid(form)
+class UpdatePage(UpdateView):
+    """
+    Класс представления служит для обновления статьи про известную женщину.
+
+    Атрибуты:\n
+    model - model - models.Model - связанная модель;\n
+    fields - tuple - поля, которые будут отображены в форме;\n
+    template_name - str - маршрут для отображения страницы;\n
+    success_url - str - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
+    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
+    """
+    model = Women
+    fields = ('title', 'content', 'photo', 'is_published', 'cat')
+    template_name = 'women/addpage.html'
+    success_url = reverse_lazy('home')
+    extra_context = {
+        'menu': menu,
+        'title': 'Редактирование статьи',
+    }
 
 
 def contact(request: HttpRequest) -> HttpResponse:
