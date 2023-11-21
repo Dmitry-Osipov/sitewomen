@@ -5865,3 +5865,131 @@ urlpatterns = [
 Ну а последний подобный класс DeleteView разберите самостоятельно. Используется он аналогично ранее рассмотренным классам CreateView и UpdateView. Подробно о нем написано в [документации](https://docs.djangoproject.com/en/4.2/ref/class-based-views/generic-editing/#deleteview).
 
 Конечно, на этом занятии я лишь привел примеры использования различных классов представлений, чтобы вы понимали, как это вообще работает, и имели базовые знания для написания начального кода. Конечно, все атрибуты, все нюансы описать достаточно сложно и это будет напоминать справочное руководство, пользы от которого большой уже не будет, т.к. такая информация быстро выветривается из головы. Главное сейчас понять суть, принцип использования классов представлений во фреймворке Django.
+### 55. Mixins как способ улучшения программного кода.
+На этом занятии мы с вами вынесем общий код классов представлений в отдельный класс, который можно воспринимать как миксин (mixin). Те из вас, кто хорошо знаком с ООП уже знают, что такое миксины и для чего они служат. Вкратце, я напомню идею этого паттерна на простом примере.
+
+Предположим, у нас имеется класс Furniture (мебель). Тогда мы можем определить его функциональность в зависимости от набора базовых классов – миксинов. Например, ножки (LegsMixin) и квадратная крышка (CoverRectMixin) будут определять квадратный стол; ножки и круглая крышка (CoverRoundMixin) определяют круглый стол; сочетание ножек, квадратной крышки и спинки (BackMixin) дают стул. Это наглядная идея классов миксинов, которые своими различными сочетаниями описывают функционал дочерних классов.
+
+В разных языках программирования миксины реализуются по-разному. В частности, в Python, благодаря наличию механизма множественного наследования, примеси можно добавлять в виде отдельного базового класса:
+
+![Пример использования миксина](images/mixin_ex.jpeg)
+
+Например, наши классы представлений можно дополнительно унаследовать от класса DataMixin, который будет отвечать за наполнение шаблонов стандартной информацией. Благодаря этому мы сможем сократить дублирование кода в тексте программы.
+
+Начнем с класса WomenHome. Классы миксинов принято записывать первыми в списке наследования, поэтому получим такую запись:
+```python
+# women/views.py
+class WomenHome(DataMixin, ListView):
+    ...
+```
+Давайте, теперь объявим новый класс DataMixin. Где это лучше сделать? Обычно в Django все дополнительные, вспомогательные классы определяют в отдельном файле utils.py текущего приложения. Мы так и поступим. Создадим этот файл и в нем запишем класс DataMixin, следующим образом:
+```python
+# women/utils.py
+menu = [{'title': "О сайте", 'url_name': 'about'},
+        {'title': "Добавить статью", 'url_name': 'add_page'},
+        {'title': "Обратная связь", 'url_name': 'contact'},
+        {'title': "Войти", 'url_name': 'login'}
+]
+ 
+ 
+class DataMixin:
+    def get_mixin_context(self, context, **kwargs):
+        context['menu'] = menu
+        context['cat_selected'] = None
+        context.update(kwargs)
+        return context
+```
+Обратите внимание, я перенес сюда и главное меню, т.к. оно используется напрямую классом DataMixin.
+
+Итак, что же делает класс DataMixin? В нем объявлен вспомогательный метод get_mixin_context() для формирования контекста шаблона по умолчанию. Также, при необходимости, мы можем передавать ему именованные аргументы, которые также будут помещаться в контекст. Благодаря этому методу, нам не придется в классах представлений каждый раз прописывать ссылки на главное меню.
+
+Итак, класс миксин объявлен. Осталось в классе WomenHome изменить метод get_context_data(), следующим образом:
+```python
+# women/views.py
+class WomenHome(DataMixin, ListView):
+    ...
+    def get_context_data(self, *, object_list=None, **kwargs):
+        return self.get_mixin_context(super().get_context_data(**kwargs),
+                                      title='Главная страница',
+                                      cat_selected=0,
+                                      )
+```
+Мы здесь вызываем метод get_mixin_context() класса DataMixin, указав, дополнительно параметр title и cat_selected. Получаем новый словарь со всеми стандартными ключами и объединяем его со словарем context. После этого он возвращается.
+
+По аналогии, меняем и все остальные классы представлений, где используется вызов get_context_data():
+```python
+# women/views.py
+class ShowPost(DataMixin, DetailView):
+...
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return self.get_mixin_context(context, title=context['post'])
+ 
+ 
+class WomenCategory(DataMixin, ListView):
+...
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cat = context['posts'][0].cat
+        return self.get_mixin_context(context,
+                                      title='Категория - ' + cat.name,
+                                      cat_selected=cat.id,
+                                      )
+ 
+ 
+class TagPostList(DataMixin, ListView):
+...
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tag = TagsPost.objects.get(slug=self.kwargs['tag_slug'])
+        return self.get_mixin_context(context, title='Тег: ' + tag.tag)
+```
+Все, переходим на сайт и видим, что страницы отображаются также как и ранее, но теперь все работает совместно с классом DataMixin.
+
+Можно пойти еще дальше и оптимизировать с помощью этого же класса DataMixin определение словаря extra_context. Для этого в классе DataMixin мы вначале пропишем следующие строчки:
+```python
+# women/utils.py
+class DataMixin:
+    title_page = None
+    extra_context = {}
+ 
+    def __init__(self):
+        if self.title_page:
+            self.extra_context['title'] = self.title_page
+ 
+        if 'menu' not in self.extra_context:
+            self.extra_context['menu'] = menu
+ 
+    def get_mixin_context(self, context, **kwargs):
+        if self.title_page:
+            context['title'] = self.title_page
+ 
+        context['menu'] = menu
+        context['cat_selected'] = None
+        context.update(kwargs)
+        return context
+```
+Здесь вводится специальный атрибут title_page, который может содержать заголовок страницы, а также пустой словарь extra_context. Ниже записан инициализатор для формирования в словаре extra_context ключа menu и ключа title, если атрибут title_page не равен None, то есть, определен в дочернем классе. Перейдем теперь в класс AddPage и модифицируем его следующим образом:
+```python
+# women/views.py
+class AddPage(DataMixin, CreateView):
+    model = Women
+    fields = ['title', 'slug', 'content', 'is_published', 'cat']
+    # form_class = AddPostForm
+    template_name = 'women/addpage.html'
+    success_url = reverse_lazy('home')
+    title_page = 'Добавление статьи'
+```
+Смотрите, мы теперь можем пользоваться атрибутом title_page, введенным в классе DataMixin. Содержимое этого атрибута автоматически добавится в словарь extra_context и будет передано в шаблон через параметр title. Все стало удобнее и нагляднее. При этом атрибут extra_context по-прежнему можно прописывать в классе AddPage и добавлять любые дополнительные данные в шаблон, то есть, мы нашим классом DataMixin никак не нарушаем стандартную логику работы фреймворка Django.
+
+Давайте внесем аналогичные изменения в другие классы, которые используют словарь extra_context:
+```python
+# women/views.py
+class UpdatePage(DataMixin, UpdateView):
+    ...
+    title_page = 'Редактирование статьи'
+```
+Вот пример того, как миксины в Django позволяют устранять дублирование кода и добавлять новый функционал в классы представления.
