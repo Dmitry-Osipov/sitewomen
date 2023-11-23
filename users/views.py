@@ -1,22 +1,40 @@
-from django.http import HttpRequest, HttpResponse
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
+from django.urls import reverse
+
+from users.forms import LoginUserForm
+
 
 # Create your views here.
-def login_user(request: HttpRequest) -> HttpResponse:
+def login_user(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
     """
-    Функция представления служит для регистрации пользователя.
+    Функция представления служит для авторизации пользователя. В случае успешной авторизации происходит перенаправление
+    на главную страницу.
 
     :param request: Запрос клиента.
-    :return: Заглушка.
+    :return: Страница авторизации или главная страница.
     """
-    return HttpResponse('login')
+    if request.method == 'POST':
+        form = LoginUserForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            user = authenticate(request, username=cd['username'], password=cd['password'])
+            if user and user.is_active:
+                login(request, user)
+                return HttpResponseRedirect(reverse('home'))
+    else:
+        form = LoginUserForm()
+
+    return render(request, 'users/login.html', context={'form': form})
 
 
-def logout_user(request: HttpRequest) -> HttpResponse:
+def logout_user(request: HttpRequest) -> HttpResponseRedirect:
     """
     Функция представления служит для выхода пользователя.
 
     :param request: Запрос клиента.
-    :return: Заглушка.
+    :return: Перенаправление на страницу авторизации.
     """
-    return HttpResponse('logout')
+    logout(request)
+    return HttpResponseRedirect(reverse('users:login'))
