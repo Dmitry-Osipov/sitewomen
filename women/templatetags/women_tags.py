@@ -1,6 +1,7 @@
 from django import template
 from django.db.models import Count
 
+from ..utils import menu
 from ..views import *
 
 register = template.Library()
@@ -43,3 +44,13 @@ def show_all_tags() -> dict[str, TagPost]:
 #     :return: list - список, состоящий из словарей, содержит все категории с id и названиями.
 #     """
 #     return cats_db
+#
+#
+# @register.simple_tag
+# def get_menu():
+#     """
+#     Функция нужна как пример передачи меню в шаблон с помощью тегов.
+#
+#     :return: Меню сайта
+#     """
+#     return menu
