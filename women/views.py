@@ -1,3 +1,5 @@
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect, HttpRequest
 from django.shortcuts import render, get_object_or_404
@@ -37,9 +39,10 @@ class WomenHome(DataMixin, ListView):
         return Women.published.all().select_related('cat')
 
 
+@login_required  # Дополнительно можно указать параметр login_url для изменения страницы перенаправления.
 def about(request: HttpRequest) -> HttpResponse:
     """
-    Функция представления служит для отображения страницы о сайте.
+    Функция представления служит для отображения страницы о сайте. Страница доступна только для авторизованных клиентов.
 
     :param request: Запрос пользователя.
     :return: Страница загрузки графического файла на машину.
@@ -127,9 +130,10 @@ class WomenCategory(DataMixin, ListView):
         return self.get_mixin_context(context, title='Категория - ' + cat.name, cat_selected=cat.pk)
 
 
-class AddPage(DataMixin, CreateView):
+class AddPage(LoginRequiredMixin, DataMixin, CreateView):
     """
-    Класс представления служит для добавления статьи про известную женщину.
+    Класс представления служит для добавления статьи про известную женщину. Страница добавления статьи доступна только
+    авторизованным пользователям.
 
     Атрибуты:\n
     form_class - forms.ModelForm - переменная ссылается на класс формы;\n
@@ -144,6 +148,18 @@ class AddPage(DataMixin, CreateView):
     success_url = reverse_lazy('home')  # Если убрать атрибут, то URL будет браться из метода get_absolute_url связанной
     # модели.
     title_page = 'Добавление статьи'
+    # login_url = 'home' - страница перенаправления для неавторизованных пользователей.
+
+    def form_valid(self, form: forms.ModelForm) -> HttpResponseRedirect:
+        """
+        Метод автоматически присваивает id автора к добавляемой записи с переходом на главную страницу.
+
+        :param form: Проверенная и заполненная форма добавления новой статьи.
+        :return: Заполненная форма.
+        """
+        w = form.save(commit=False)
+        w.author = self.request.user
+        return super().form_valid(form)
 
 
 class UpdatePage(DataMixin, UpdateView):

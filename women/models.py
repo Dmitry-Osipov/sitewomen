@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.db import models
 from django.urls import reverse
@@ -67,7 +68,9 @@ class Women(models.Model):
     внешний ключ таблицы мужа (связь один-к-одному);\n
     objects - стандартный менеджер модели - при добавлении собственного менеджера, атрибут objects автоматически
     затирается, так что следует прописать его явно;\n
-    published - кастомный менеджер модели.
+    published - кастомный менеджер модели;\n
+    author - FOREIGN KEY - обязательное поле, при удалении поста выставляет в таблице значение на NULL, по умолчанию NULL,
+    название менеджера записей "posts" - внешний ключ таблицы авторов постов.
     """
     class Status(models.IntegerChoices):
         """
@@ -100,6 +103,7 @@ class Women(models.Model):
     tags = models.ManyToManyField('TagPost', blank=True, related_name='tags', verbose_name='Тег')
     husband = models.OneToOneField('Husband', on_delete=models.SET_NULL, null=True, blank=True,
                                    related_name='woman', verbose_name='Муж')
+    author = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, related_name='posts', null=True, default=None)
 
     objects = models.Manager()
     published = PublishedManager()

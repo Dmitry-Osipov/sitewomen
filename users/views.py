@@ -1,8 +1,4 @@
-from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
-from django.urls import reverse, reverse_lazy
 
 from users.forms import *
 
