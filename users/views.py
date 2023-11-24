@@ -1,40 +1,65 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
-from users.forms import LoginUserForm
+from users.forms import *
 
 
 # Create your views here.
-def login_user(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
+class LoginUser(LoginView):
     """
-    Функция представления служит для авторизации пользователя. В случае успешной авторизации происходит перенаправление
-    на главную страницу.
+    Класс представления служит для авторизации пользователя.
 
-    :param request: Запрос клиента.
-    :return: Страница авторизации или главная страница.
+    Атрибуты:\n
+    form_class - forms.AuthenticationForm - класс формы аутентификации пользователя;\n
+    template_name - str - имя HTML-шаблона;\n
+    extra_context - dict - дополнительный словарь контекста.
     """
-    if request.method == 'POST':
-        form = LoginUserForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-            user = authenticate(request, username=cd['username'], password=cd['password'])
-            if user and user.is_active:
-                login(request, user)
-                return HttpResponseRedirect(reverse('home'))
-    else:
-        form = LoginUserForm()
+    form_class = LoginUserForm
+    template_name = 'users/login.html'
+    extra_context = {'title': 'Авторизация'}
 
-    return render(request, 'users/login.html', context={'form': form})
+    # def get_success_url(self):
+    #     """
+    #     Метод отвечает за перенаправление клиента на определённую страницу при авторизации. Имеет наивысший приоритет
+    #     перенаправления клиента.
+    #
+    #     :return: Ленивое перенаправление на главную страницу.
+    #     """
+    #     return reverse_lazy('home')
 
 
-def logout_user(request: HttpRequest) -> HttpResponseRedirect:
-    """
-    Функция представления служит для выхода пользователя.
-
-    :param request: Запрос клиента.
-    :return: Перенаправление на страницу авторизации.
-    """
-    logout(request)
-    return HttpResponseRedirect(reverse('users:login'))
+# Функции представления, заменённые на классы представления:
+# def login_user(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
+#     """
+#     Функция представления служит для авторизации пользователя. В случае успешной авторизации происходит перенаправление
+#     на главную страницу.
+#
+#     :param request: Запрос клиента.
+#     :return: Страница авторизации или главная страница.
+#     """
+#     if request.method == 'POST':
+#         form = LoginUserForm(request.POST)
+#         if form.is_valid():
+#             cd = form.cleaned_data
+#             user = authenticate(request, username=cd['username'], password=cd['password'])
+#             if user and user.is_active:
+#                 login(request, user)
+#                 return HttpResponseRedirect(reverse('home'))
+#     else:
+#         form = LoginUserForm()
+#
+#     return render(request, 'users/login.html', context={'form': form})
+#
+#
+# def logout_user(request: HttpRequest) -> HttpResponseRedirect:
+#     """
+#     Функция представления служит для выхода пользователя.
+#
+#     :param request: Запрос клиента.
+#     :return: Перенаправление на страницу авторизации.
+#     """
+#     logout(request)
+#     return HttpResponseRedirect(reverse('users:login'))
