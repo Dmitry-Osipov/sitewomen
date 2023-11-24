@@ -1,4 +1,6 @@
 from django.contrib.auth.views import LoginView
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 
 from users.forms import *
 
@@ -25,6 +27,26 @@ class LoginUser(LoginView):
     #     :return: Ленивое перенаправление на главную страницу.
     #     """
     #     return reverse_lazy('home')
+
+
+def register(request: HttpRequest) -> HttpResponse:
+    """
+    Функция представления отвечает за регистрацию нового пользователя.
+
+    :param request: Запрос клиента.
+    :return: Страница регистрации клиента.
+    """
+    if request.method == 'POST':
+        form = RegisterUserForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            return render(request, 'users/register_done.html')
+    else:
+        form = RegisterUserForm()
+
+    return render(request, 'users/register.html', context={'form': form})
 
 
 # Функции представления, заменённые на классы представления:
