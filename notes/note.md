@@ -6813,3 +6813,76 @@ def register(request):
 {% endblock %}
 ```
 Все, регистрация пользователя в самом простом варианте реализована на сайте.
+### 64. Класс UserCreationForm.
+На этом занятии мы с вами перейдем с функции представления register() к классу представления, а также воспользуемся стандартным классом UserCreationForm для создания нового пользователя.
+
+Начнем с класса UserCreationForm. Перейдем в файл users/forms.py и переопределим класс RegisterUserForm следующим образом:
+```python
+# users/forms.py
+class RegisterUserForm(UserCreationForm):
+    username = forms.CharField(label='Логин', widget=forms.TextInput(attrs={'class': 'form-input'}))
+    password1 = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    password2 = forms.CharField(label='Повтор пароля', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+ 
+    class Meta:
+        model = get_user_model()
+        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2']
+        labels = {
+            'email': 'E-mail',
+            'first_name': 'Имя',
+            'last_name': 'Фамилия',
+        }
+        widgets = {
+            'email': forms.TextInput(attrs={'class': 'form-input'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
+        }
+ 
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Такой E-mail уже существует!")
+        return email
+```
+Обратите внимание, здесь фигурируют атрибуты password1 и password2. Это требование [класса UserCreationForm](https://docs.djangoproject.com/en/4.2/topics/auth/customizing/#custom-users-and-the-built-in-auth-forms).
+
+До этого у нас были атрибуты password и password2. Также здесь не нужно делать проверку на совпадение паролей. Я оставил только фильтр на уникальность E-mail. Все остальное класс UserCreationForm берет на себя.
+
+После определения класса, перейдем в шаблон формы register.html и улучшим внешний вид формы:
+```html
+<!-- register.html -->
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}" />
+    <div class="form-error">{{ form.non_field_errors }}</div>
+    {% for f in form %}
+        <p><label class="form-label" for="{{ f.id_for_label }}">{{f.label}}: </label>{{ f }}</p>
+        <div class="form-error">{{ f.errors }}</div>
+    {% endfor %}
+    <p><button type="submit">Регистрация</button></p>
+</form>
+```
+Теперь форма регистрации выглядит куда лучше. Последнее, что нам осталось сделать – это заменить функцию представления register на класс. Но какой класс здесь следует взять? Специального для регистрации в Django нет, да и в нем нет смысла, так как все, что нам нужно сделать – это проверить данные формы и сохранить ее в БД. Для этой операции уже есть класс представления CreateView. Воспользуемся им и в файле users/views.py объявим класс RegisterUser следующим образом:
+```python
+# users/forms.py
+class RegisterUser(CreateView):
+    form_class = RegisterUserForm
+    template_name = 'users/register.html'
+    extra_context = {'title': "Регистрация"}
+```
+И свяжем этот класс с маршрутом register в файле users/urls.py:
+```python
+# users/urls.py
+...
+    path('register/', views.RegisterUser.as_view(), name='register'),
+...
+```
+Обновим страницу регистрации, введем существующий логин, email, несовпадающие пароли и увидим сгенерированные сообщения об ошибках, которые автоматически создает форма UserCreationForm. И в этом ее удобство. Нам не нужно здесь выполнять каждый раз типовую работу. Фреймворк Django все берет на себя. От нас требуется только использовать специально предназначенные классы для той или иной задачи. Именно поэтому так важно знать возможности фреймворка, чтобы не делать то, что уже сделано (не изобретать велосипед).
+
+Заполним форму корректными данными, нажмем на кнопку «Регистрация» и получаем ошибку, что в модели не определен метод get_absolute_url(). Он используется, если Django не знает, куда перенаправить пользователя. Исправим это, добавив в класс RegisterUser известный нам атрибут:
+```python
+class RegisterUser...
+    success_url = reverse_lazy('users:login')
+...
+```
+Теперь, при регистрации, мы сразу будем попадать на страницу авторизации. А в админ-панели появился еще один пользователь. Как видите, все достаточно просто.
