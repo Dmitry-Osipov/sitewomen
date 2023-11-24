@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 
 class LoginUserForm(AuthenticationForm):
@@ -25,18 +25,18 @@ class LoginUserForm(AuthenticationForm):
         fields = ('username', 'password')
 
 
-class RegisterUserForm(forms.ModelForm):
+class RegisterUserForm(UserCreationForm):
     """
     Класс отвечает за регистрацию пользователя.
 
     Атрибуты:\n
     username - логин пользователя;\n
-    password - пароль пользователя;\n
+    password1 - пароль пользователя;\n
     password2 - повтор пароля.
     """
-    username = forms.CharField(label='Логин')
-    password = forms.CharField(widget=forms.PasswordInput(), label='Пароль')
-    password2 = forms.CharField(widget=forms.PasswordInput(), label='Повтор пароля')
+    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-input'}), label='Логин')
+    password1 = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input'}), label='Пароль')
+    password2 = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input'}), label='Повтор пароля')
 
     class Meta:
         """
@@ -45,28 +45,21 @@ class RegisterUserForm(forms.ModelForm):
         Атрибуты:\n
         model - текущая модель пользователя;\n
         fields - поля, которые требуется отображать;\n
-        labels - метки для полей.
+        labels - метки для полей;\n
+        widgets - CSS-виджеты полей.
         """
         model = get_user_model()
-        fields = ('username', 'email', 'first_name', 'last_name', 'password', 'password2')
+        fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2')
         labels = {
             'email': 'E-mail',
             'first_name': 'Имя',
             'last_name': 'Фамилия',
         }
-
-    def clean_password2(self) -> forms.CharField:
-        """
-        Метод-валидатор проверяет совпадение паролей.
-
-        :return: Пароль.
-        :raises ValidationError: Ошибка несовпадения паролей.
-        """
-        cd = self.cleaned_data
-        if cd['password'] != cd['password2']:
-            raise forms.ValidationError('Пароли не совпадают')
-
-        return cd['password']
+        widgets = {
+            'email': forms.TextInput(attrs={'class': 'form-input'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
+        }
 
     def clean_email(self) -> forms.EmailField:
         """

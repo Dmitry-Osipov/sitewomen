@@ -1,6 +1,8 @@
 from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
 
 from users.forms import *
 
@@ -29,24 +31,20 @@ class LoginUser(LoginView):
     #     return reverse_lazy('home')
 
 
-def register(request: HttpRequest) -> HttpResponse:
+class RegisterUser(CreateView):
     """
-    Функция представления отвечает за регистрацию нового пользователя.
+    Класс представления отвечает за регистрацию нового пользователя.
 
-    :param request: Запрос клиента.
-    :return: Страница регистрации клиента.
+    Атрибуты:\n
+    form_class - forms.UserCreationForm - класс формы;\n
+    template_name - str - HTML-шаблон;\n
+    extra_context - dict - дополнительные данные;\n
+    success_url - Callable - переход на страницу после успешной регистрации.
     """
-    if request.method == 'POST':
-        form = RegisterUserForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password'])
-            user.save()
-            return render(request, 'users/register_done.html')
-    else:
-        form = RegisterUserForm()
-
-    return render(request, 'users/register.html', context={'form': form})
+    form_class = RegisterUserForm
+    template_name = 'users/register.html'
+    extra_context = {'title': 'Регистрация'}
+    success_url = reverse_lazy('users:login')
 
 
 # Функции представления, заменённые на классы представления:
@@ -81,3 +79,23 @@ def register(request: HttpRequest) -> HttpResponse:
 #     """
 #     logout(request)
 #     return HttpResponseRedirect(reverse('users:login'))
+#
+#
+# def register(request: HttpRequest) -> HttpResponse:
+#     """
+#     Функция представления отвечает за регистрацию нового пользователя.
+#
+#     :param request: Запрос клиента.
+#     :return: Страница регистрации клиента.
+#     """
+#     if request.method == 'POST':
+#         form = RegisterUserForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.set_password(form.cleaned_data['password'])
+#             user.save()
+#             return render(request, 'users/register_done.html')
+#     else:
+#         form = RegisterUserForm()
+#
+#     return render(request, 'users/register.html', context={'form': form})
