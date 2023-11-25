@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
@@ -79,6 +79,16 @@ class ProfileUser(LoginRequiredMixin, UpdateView):
         :return: Текущий пользователь.
         """
         return self.request.user
+
+
+class UserPasswordChange(PasswordChangeView):
+    """
+    Класс представления служит для отображения страницы смены пароля пользователя.
+    """
+    form_class = UserPasswordChangeForm
+    success_url = reverse_lazy('users:password_change_done')
+    template_name = 'users/password_change_form.html'
+    extra_context = {'title': 'Смена пароля'}
 
 
 # Функции представления, заменённые на классы представления:
