@@ -1,8 +1,9 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
-from django.views.generic import CreateView
+from django.views.generic import CreateView, UpdateView
 
 from users.forms import *
 
@@ -45,6 +46,39 @@ class RegisterUser(CreateView):
     template_name = 'users/register.html'
     extra_context = {'title': 'Регистрация'}
     success_url = reverse_lazy('users:login')
+
+
+class ProfileUser(LoginRequiredMixin, UpdateView):
+    """
+    Класс представления отвечает за отображение профиля пользователя.
+
+    Атрибуты:\n
+    model - models.Model - модель;\n
+    form_class - forms.ModelForm - класс формы;\n
+    template_name - str - HTML-шаблон;\n
+    extra_context - dict - дополнительные данные.
+    """
+    model = get_user_model()
+    form_class = ProfileUserForm
+    template_name = 'users/profile.html'
+    extra_context = {'title': 'Профиль пользователя'}
+
+    def get_success_url(self):
+        """
+        Метод отвечает за перенаправление клиента на определённую страницу при изменении и сохранении каких-либо полей
+        профиля. Имеет наивысший приоритет перенаправления клиента.
+
+        :return: Ленивое перенаправление на страницу профиля.
+        """
+        return reverse_lazy('users:profile')
+
+    def get_object(self, queryset=None):
+        """
+        Метод отбирает ту запись, которая будет отображаться и редактироваться.
+
+        :return: Текущий пользователь.
+        """
+        return self.request.user
 
 
 # Функции представления, заменённые на классы представления:

@@ -74,3 +74,36 @@ class RegisterUserForm(UserCreationForm):
             raise forms.ValidationError('Такой E-mail уже существует')
 
         return email
+
+
+class ProfileUserForm(forms.ModelForm):
+    """
+    Класс формы предназначен для создания профиля пользователя.
+
+    Атрибуты:\n
+    username - логин пользователя, запрещено для изменения (disabled=True);\n
+    email - почта пользователя, запрещена для изменений.
+    """
+    username = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='Логин')
+    email = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='E-mail')
+
+    class Meta:
+        """
+        Вложенный класс предназначен для корректной обработки данных.
+
+        Атрибуты:\n
+        model - текущая модель пользователя;\n
+        fields - поля, которые требуется отображать;\n
+        labels - метки для полей;\n
+        widgets - CSS-виджеты полей.
+        """
+        model = get_user_model()
+        fields = ('username', 'email', 'first_name', 'last_name')
+        labels = {
+            'first_name': 'Имя',
+            'last_name': 'Фамилия',
+        }
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
+        }
