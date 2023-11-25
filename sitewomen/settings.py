@@ -173,3 +173,5 @@ AUTHENTICATION_BACKENDS = [  # Указываем модули бэкенда д
     'django.contrib.auth.backends.ModelBackend',
     'users.authentication.EmailAuthBackend',
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Модуль почтового бэкенда.
