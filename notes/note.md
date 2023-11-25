@@ -7043,3 +7043,101 @@ class ProfileUser(LoginRequiredMixin, UpdateView):
 <li class="last"> <a href="{% url 'users:profile' %}">{{user.username}}</a> | <a href="{% url 'users:logout' %}">Выйти</a></li>
 ```
 Все, самый простой вариант профиля пользователя мы с вами сделали.
+### 66. Классы PasswordChangeView и PasswordChangeDoneView.
+Предыдущее занятие мы завершили созданием профиля пользователя. Но в нем не хватает одного важного пункта – возможности смены пароля. Как раз это мы и сделаем на этом занятии.
+
+Фреймворк Django предоставляет два следующих класса для изменения пароля пользователя:
+- PasswordChangeView – для обработки формы изменения пароля;
+- PasswordChangeDoneView – для отображения результата успешного изменения пароля.
+
+Если мы посмотрим объявление класса PasswordChangeView, то увидим, что он использует по умолчанию шаблон registration/password_change_form.html и класс формы PasswordChangeForm, а также делает перенаправление по маршруту с именем password_change_done. Мы можем воспользоваться всеми этими стандартными настройками, просто прописав в файле users/urls.py соответствующие маршруты:
+```python
+# users/urls.py
+urlpatterns = [
+    path('login/', views.LoginUser.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('password-change/', PasswordChangeView.as_view(), name='password_change'),
+    path('password-change/done/', PasswordChangeDoneView.as_view(), name='password_change_done'),
+ 
+    path('register/', views.RegisterUser.as_view(), name='register'),
+    path('profile/<int:pk>/', views.ProfileUser.as_view(), name='profile'),
+]
+```
+Добавим в шаблон profile.html ссылку для изменения пароля:
+```html
+<!-- profile.html -->
+<hr>
+<p><a href="{% url 'users:password_change' %}">Сменить пароль</a></p>
+```
+После запуска веб-сервера и перехода в профиль пользователя, увидим ссылку «Сменить пароль». Если сейчас перейти по ней, то окажемся в админ-панели со стандартной формой смены пароля.
+
+Но мы сделаем свою форму. Для этого создадим файл шаблона users/ password_change_form.html со стандартным содержимым:
+```html
+<!-- password_change_form.html -->
+{% extends 'base.html' %}
+ 
+{% block content %}
+<h1>Изменение пароля</h1>
+ 
+<form method="post">
+    {% csrf_token %}
+    <div class="form-error">{{ form.non_field_errors }}</div>
+    {% for f in form %}
+    <p><label class="form-label" for="{{ f.id_for_label }}">{{f.label}}: </label>{{ f }}</p>
+    <div class="form-error">{{ f.errors }}</div>
+    {% endfor %}
+ 
+    <p><button type="submit">Изменить пароль</button></p>
+</form>
+ 
+{% endblock %}
+```
+Здесь стандартное содержимое для отображения полей формы в нашем базовом шаблоне.
+
+Затем, для этого шаблона определим класс формы на базе стандартного класса PasswordChangeForm и настроим в нем отображение следующих полей:
+```python
+# users/forms.py
+class UserPasswordChangeForm(PasswordChangeForm):
+    old_password = forms.CharField(label="Старый пароль", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    new_password1 = forms.CharField(label="Новый пароль", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    new_password2 = forms.CharField(label="Подтверждение пароля", widget=forms.PasswordInput(attrs={'class': 'form-input'}
+```
+(Набор этих полей можно посмотреть в классе PasswordChangeForm.)
+
+Далее, добавим свой класс представления для отображения собственной формы:
+```python
+# users/views.py
+class UserPasswordChange(PasswordChangeView):
+    form_class = UserPasswordChangeForm
+    success_url = reverse_lazy("users:password_change_done")
+    template_name = "users/password_change_form.html"
+    extra_context = {'title': "Изменение пароля"}
+```
+И подключим его к маршруту password_change:
+```python
+# users/urls.py
+...
+path('password-change/', views.UserPasswordChange.as_view(), name='password_change'),
+...
+```
+Если теперь перейти по ссылке «Изменить пароль», то увидим форму в стиле оформления нашего сайта. Причем, эта форма полностью рабочая. Но нам осталось еще прописать свой собственный шаблон для маршрута password_change_done с информацией об успешном изменении пароля.
+
+Для этого мы создадим еще один шаблон users/password_change_done.html со следующим содержимым:
+```html
+<!-- password_change_done.html -->
+{% extends 'base.html' %}
+ 
+{% block content %}
+<h1>Пароль успешно изменен!</h1>
+ 
+<p>Вы успешно изменили пароль. <a href="{% url 'users:profile' %}">Вернуться в профиль.</a></p>
+{% endblock %}
+```
+И пропишем его в методе as_view() класса PasswordChangeDoneView:
+```python
+# users/urls.py
+...
+    path('password-change/done/', PasswordChangeDoneView.as_view(template_name="users/password_change_done.html"), name="password_change_done"),
+...
+```
+После успешного изменения попадаем на страницу об успешном изменении пароля. Все, мы с вами только что добавили новый функционал по изменению пароля пользователя.

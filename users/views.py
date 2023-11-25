@@ -84,6 +84,12 @@ class ProfileUser(LoginRequiredMixin, UpdateView):
 class UserPasswordChange(PasswordChangeView):
     """
     Класс представления служит для отображения страницы смены пароля пользователя.
+
+    Атрибуты:\n
+    form_class - forms.ModelForm - класс формы;\n
+    success_url - Callable - переход на страницу после успешной регистрации;\n
+    template_name - str - HTML-шаблон;\n
+    extra_context - dict - дополнительные данные.
     """
     form_class = UserPasswordChangeForm
     success_url = reverse_lazy('users:password_change_done')

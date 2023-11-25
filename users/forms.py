@@ -8,8 +8,8 @@ class LoginUserForm(AuthenticationForm):
     Класс отвечает за авторизацию и аутентификацию пользователя.
 
     Атрибуты:\n
-    username - логин пользователя;\n
-    password - пароль пользователя.
+    username - VARCHAR - логин пользователя;\n
+    password - VARCHAR - пароль пользователя.
     """
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-input'}), label='Логин')
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input'}), label='Пароль')
@@ -18,8 +18,8 @@ class LoginUserForm(AuthenticationForm):
         Вложенный класс предназначен для корректной обработки данных.
 
         Атрибуты:\n
-        model - текущая модель пользователя;\n
-        fields - поля, которые требуется отображать.
+        model - models.Model - текущая модель пользователя;\n
+        fields - tuple - поля, которые требуется отображать.
         """
         model = get_user_model()
         fields = ('username', 'password')
@@ -30,9 +30,9 @@ class RegisterUserForm(UserCreationForm):
     Класс отвечает за регистрацию пользователя.
 
     Атрибуты:\n
-    username - логин пользователя;\n
-    password1 - пароль пользователя;\n
-    password2 - повтор пароля.
+    username - VARCHAR - логин пользователя;\n
+    password1 - VARCHAR - пароль пользователя;\n
+    password2 - VARCHAR - повтор пароля.
     """
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-input'}), label='Логин')
     password1 = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input'}), label='Пароль')
@@ -43,10 +43,10 @@ class RegisterUserForm(UserCreationForm):
         Вложенный класс предназначен для корректной обработки данных.
 
         Атрибуты:\n
-        model - текущая модель пользователя;\n
-        fields - поля, которые требуется отображать;\n
-        labels - метки для полей;\n
-        widgets - CSS-виджеты полей.
+        model - models.Model - текущая модель пользователя;\n
+        fields - tuple - поля, которые требуется отображать;\n
+        labels - dict - метки для полей;\n
+        widgets - dict - CSS-виджеты полей.
         """
         model = get_user_model()
         fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2')
@@ -81,8 +81,8 @@ class ProfileUserForm(forms.ModelForm):
     Класс формы предназначен для создания профиля пользователя.
 
     Атрибуты:\n
-    username - логин пользователя, запрещено для изменения (disabled=True);\n
-    email - почта пользователя, запрещена для изменений.
+    username - VARCHAR - логин пользователя, запрещено для изменения (disabled=True);\n
+    email - VARCHAR - почта пользователя, запрещена для изменений.
     """
     username = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='Логин')
     email = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='E-mail')
@@ -92,10 +92,10 @@ class ProfileUserForm(forms.ModelForm):
         Вложенный класс предназначен для корректной обработки данных.
 
         Атрибуты:\n
-        model - текущая модель пользователя;\n
-        fields - поля, которые требуется отображать;\n
-        labels - метки для полей;\n
-        widgets - CSS-виджеты полей.
+        model - models.Model - текущая модель пользователя;\n
+        fields - tuple - поля, которые требуется отображать;\n
+        labels - dict - метки для полей;\n
+        widgets - dict - CSS-виджеты полей.
         """
         model = get_user_model()
         fields = ('username', 'email', 'first_name', 'last_name')
@@ -114,9 +114,9 @@ class UserPasswordChangeForm(PasswordChangeForm):
     Класс формы для смены пароля пользователя.
 
     Атрибуты:\n
-    old_password - старый пароль;\n
-    new_password1 - новый пароль;\n
-    new_password2 - повтор нового пароля.
+    old_password - VARCHAR - старый пароль;\n
+    new_password1 - VARCHAR - новый пароль;\n
+    new_password2 - VARCHAR - повтор нового пароля.
     """
     old_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input'}), label='Старый пароль')
     new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input'}), label='Новый пароль')
