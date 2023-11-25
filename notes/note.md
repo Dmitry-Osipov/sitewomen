@@ -6886,3 +6886,160 @@ class RegisterUser...
 ...
 ```
 Теперь, при регистрации, мы сразу будем попадать на страницу авторизации. А в админ-панели появился еще один пользователь. Как видите, все достаточно просто.
+### 65. Авторизация через email. Профайл пользователя.
+На этом занятии мы с вами реализуем довольно распространенный способ авторизации по E-mail адресу и паролю. Не зря на предыдущих занятиях при регистрации пользователей требовался уникальный E-mail. Вообще, им можно заменить логин и не просить пользователя вводить эти дополнительные данные.
+
+По умолчанию в Django используется бэкенд [ModelBackend для аутентификации пользователя по паре логин (username) и пароль (password)](https://docs.djangoproject.com/en/4.2/topics/auth/customizing/). В настроечном файле settings.py его можно явно прописать, используя параметр AUTHENTICATION_BACKENDS:
+```python
+# sitewomen/settings.py
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+```
+Если перейти к определению класса ModelBackend, то увидим, что он наследуется от базового класса BaseBackend, в котором определены методы, необходимые для работы механизма аутентификации. При этом главными, непосредственно для аутентификации пользователя, являются методы:
+- authenticate() – непосредственно аутентификация по username и password; возвращается объект пользователя, либо None, если он не был найден;
+- get_user() – получение объекта пользователя по идентификатору.
+
+Чтобы создать свой бэкенд аутентификации, как минимум, нужно определить в нем эти два метода. И давайте это делаем. Для этого в приложении users создадим еще один файл с именем authentication.py, в котором определим новый класс бэкенда с именем EmailAuthBackend следующим образом:
+```python
+# users/authentication.py
+from django.contrib.auth.backends import BaseBackend
+ 
+ 
+class EmailAuthBackend(BaseBackend):
+    ...
+```
+И добавим в этот класс метод authenticate(), сохранив его сигнатуру (наборы параметров), следующим образом:
+```python
+# users/authentication.py
+from django.contrib.auth.backends import BaseBackend
+ 
+ 
+class EmailAuthBackend(BaseBackend):
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        user_model = get_user_model()
+        try:
+            user = user_model.objects.get(email=username)
+            if user.check_password(password):
+                return user
+            return None
+        except (user_model.DoesNotExist, user_model.MultipleObjectsReturned):
+            return None
+```
+Здесь используется стандартное имя параметра username, чтобы наш новый бэкенд согласованно работал с фреймворком Django. Но мы подразумеваем, что сюда будет передаваться E-mail, по которому, затем, выделяется запись из таблицы user. Если запись найдена и пароль совпадает, то аутентификация прошла успешно и возвращается объект пользователя. Иначе возвращаем None, а также в том случае, если запись не была найдена или было получено несколько записей с указанным E-mail.
+
+По идее, мы уже сейчас можем подключить наш бэкенд к Django и посмотреть, как он будет работать. Для этого в файле конфигурации settings.py в список AUTHENTICATION_BACKENDS следует добавить строчку:
+```python
+# sitewomen/settings.py
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'users.authentication.EmailAuthBackend',
+]
+```
+То есть, у нас будут работать оба бэкенда: и по логину и по E-mail. Эти классы просматриваются по порядку в списке и срабатывает первый вернувший объект пользователя, остальные пропускаются. В результате, пользователи могут авторизоваться и по логину и по E-mail.
+
+Если сейчас запустить тестовый веб-сервер и перейти в форму авторизации, то при вводе корректного E-mail и пароля мы перейдем на главную страницу. Это, как раз, результат работы метода authenticate(). Но, при этом, в главном меню не видим отображения имени пользователя. Это из-за того, что мы не прописали второй метод get_user() в классе EmailAuthBackend:
+```python
+# users/authentication.py
+from django.contrib.auth.backends import BaseBackend
+ 
+ 
+class EmailAuthBackend(BaseBackend):
+    ...
+    def get_user(self, user_id):
+        user_model = get_user_model()
+        try:
+            return user_model.objects.get(pk=user_id)
+        except user_model.DoesNotExist:
+            return None
+```
+Теперь, при вводе E-mail и пароля пользователь будет авторизован и отображен на панели главного меню. Вот так в Django очень просто можно создавать свои собственные бэкенды авторизации пользователей на сайте.
+#### Создание профайла пользователя.
+Во второй части этого занятия создадим страницу с профилем пользователя. Первым делом определим шаблон в файле users/profile.html следующим образом:
+```html
+<!-- users/profile.html -->
+{% extends 'base.html' %}
+ 
+{% block content %}
+<h1>Профиль</h1>
+ 
+<form method="post">
+    {% csrf_token %}
+    <div class="form-error">{{ form.non_field_errors }}</div>
+    {% for f in form %}
+    <p ><label class="form-label" for="{{ f.id_for_label }}">{{f.label}}: </label>{{ f }}</p>
+    <div class="form-error">{{ f.errors }}</div>
+    {% endfor %}
+ 
+    <p ><button type="submit">Сохранить</button></p>
+</form>
+ 
+{% endblock %}
+```
+И класс формы ProfileUserForm для этого шаблона:
+```python
+# users/forms.py
+class ProfileUserForm(forms.ModelForm):
+    username = forms.CharField(disabled=True, label='Логин', widget=forms.TextInput(attrs={'class': 'form-input'}))
+    email = forms.CharField(disabled=True, label='E-mail', widget=forms.TextInput(attrs={'class': 'form-input'}))
+ 
+    class Meta:
+        model = get_user_model()
+        fields = ['username', 'email', 'first_name', 'last_name']
+        labels = {
+            'first_name': 'Имя',
+            'last_name': 'Фамилия',
+        }
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
+        }
+```
+Здесь все достаточно просто. Обратите внимание, у полей username и email мы установили параметр disabled=True, сделали их неактивными и неизменяемыми. Все остальное можно редактировать.
+
+Далее, в файле users/view.py объявим класс представления для работы с этой формой:
+```python
+# users/views.py
+class ProfileUser(LoginRequiredMixin, UpdateView):
+    model = get_user_model()
+    form_class = ProfileUserForm
+    template_name = 'users/profile.html'
+    extra_context = {'title': "Профиль пользователя"}
+ 
+    def get_success_url(self):
+        return reverse_lazy('users:profile', args=[self.request.user.pk])
+```
+Мы его наследуем от класса LoginRequiredMixin, чтобы запретить доступ неавторизованным пользователям. А класс UpdateView берет на себя функционал по изменению данных в профиле пользователя. Метод get_success_url() необходим для перенаправления на текущую страницу при изменении данных.
+
+И последнее, что нужно сделать – это связать класс ProfileUser с маршрутом (в файле users/urls.py):
+```python
+# users/urls.py
+...
+    path('profile/<int:pk>/', views.ProfileUser.as_view(), name='profile'),
+...
+```
+Обратите внимание на обязательный параметр pk, по которому выбирается запись из БД по текущему пользователю.
+
+Однако описанный маршрут позволяет просматривать и редактировать любые профайлы, достаточно указать идентификатор пользователя и вся информация о нем будет отображена на странице. Поэтому мы уберем отбор записей из таблицы user по идентификатору:
+```python
+# users/urls.py
+...
+    path('profile/', views.ProfileUser.as_view(), name='profile'),
+...
+```
+а в классе представления ProfileUser добавим следующий метод:
+```python
+# users/views.py
+class ProfileUser(LoginRequiredMixin, UpdateView):
+    ...
+    def get_object(self, queryset=None):
+        return self.request.user
+```
+Все, теперь профайл будет открываться только для текущего пользователя, либо сделано перенаправление на страницу авторизации для неавторизованных пользователей.
+
+И самое последнее, что мы сделаем на этом занятии – пропишем маршрут к профилю в главном меню. Для этого перейдем в шаблон base.html и внесем следующие изменения:
+```html
+<!-- base.html -->
+<li class="last"> <a href="{% url 'users:profile' %}">{{user.username}}</a> | <a href="{% url 'users:logout' %}">Выйти</a></li>
+```
+Все, самый простой вариант профиля пользователя мы с вами сделали.
