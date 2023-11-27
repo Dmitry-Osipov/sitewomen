@@ -174,4 +174,14 @@ AUTHENTICATION_BACKENDS = [  # Указываем модули бэкенда д
     'users.authentication.EmailAuthBackend',
 ]
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Модуль почтового бэкенда.
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Модуль почтового бэкенда.
+
+EMAIL_HOST = 'smtp.yandex.ru'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = 'storm-yes@yandex.ru'
+EMAIL_HOST_PASSWORD = 'zxqfkhabmgazkget'
+EMAIL_USE_SSL = True
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER
+EMAIL_ADMIN = EMAIL_HOST_USER
