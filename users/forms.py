@@ -1,3 +1,5 @@
+import datetime
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, PasswordChangeForm
@@ -82,10 +84,15 @@ class ProfileUserForm(forms.ModelForm):
 
     Атрибуты:\n
     username - VARCHAR - логин пользователя, запрещено для изменения (disabled=True);\n
-    email - VARCHAR - почта пользователя, запрещена для изменений.
+    email - VARCHAR - почта пользователя, запрещена для изменений;\n
+    this_year - int - сегодняшний год;\n
+    date_birth - DATETIME - дата рождения.
     """
     username = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='Логин')
     email = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='E-mail')
+    this_year = datetime.date.today().year
+    date_birth = forms.DateTimeField(widget=forms.SelectDateWidget(years=tuple(range(this_year-5, this_year-100, -1))),
+                                     label='Дата рождения')
 
     class Meta:
         """
@@ -98,7 +105,7 @@ class ProfileUserForm(forms.ModelForm):
         widgets - dict - CSS-виджеты полей.
         """
         model = get_user_model()
-        fields = ('username', 'email', 'first_name', 'last_name')
+        fields = ('photo', 'username', 'email', 'date_birth', 'first_name', 'last_name')
         labels = {
             'first_name': 'Имя',
             'last_name': 'Фамилия',
