@@ -173,6 +173,7 @@ LOGOUT_REDIRECT_URL = 'home'  # задаёт URL-адрес, на который
 
 AUTHENTICATION_BACKENDS = [  # Указываем модули бэкенда для авторизации.
     'social_core.backends.github.GithubOAuth2',
+    'social_core.backends.vk.VKOAuth2',
     'django.contrib.auth.backends.ModelBackend',
     'users.authentication.EmailAuthBackend',
 ]
@@ -195,6 +196,10 @@ DEFAULT_USER_IMAGE = MEDIA_URL + 'users/default.png'
 
 SOCIAL_AUTH_GITHUB_KEY = '8db5a4783a8caf0f87ab'
 SOCIAL_AUTH_GITHUB_SECRET = '392a0458422f640008f447bae6587282ec763fa8'
+
+SOCIAL_AUTH_VK_OAUTH2_KEY = '51803725'
+SOCIAL_AUTH_VK_OAUTH2_SECRET = '9Pbls3oEa4TN1k7kAMA7'
+SOCIAL_AUTH_VK_OAUTH2_SCOPE = ['email']  # Дополнительно берём почту у прошедших аутентификацию через VK.
 
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
