@@ -7902,3 +7902,49 @@ python3 manage.py runserver_plus --cert-file cert.crt
 runserver_plus --cert-file cert.crt
 
 Все, теперь мы можем запускать наш сайт по протоколу HTTPS.
+### 75. Авторизация через ВКонтакте.
+На предыдущем занятии мы добавили возможность запускать наш сайт по протоколу HTTPS и с полноценным доменным именем sitewomen.ru. Используем этот домен для настройки авторизации пользователей через социальную сеть ВКонтакте.
+
+Первым делом, как всегда, нам нужно создать приложение на платформе ВК. Для этого перейдем по [адресу](https://dev.vk.com/ru) и нажмем на ссылку «Создать приложение». В новом окне введем название приложения sitewomen, платформу «Сайт» и нажмем на кнопку «Подключить сайт».
+
+![Создание приложение вк](images/vk_oauth2.png)
+
+На следующей странице укажем URL-адрес сайта:
+```http request
+http://sitewomen.ru
+```
+с доменным именем sitewomen.ru. После этого мы получаем на вкладке «Настройки» ID приложения и его секретный ключ:
+
+![Настройки ВК OAuth2.0](images/settings_vk_oauth2.png)
+
+Осталось занести все это в настроечный файл settings.py. Чтобы знать какие именно параметры использовать, откроем страницу документации по [настройке бэкенда ВК](https://python-social-auth.readthedocs.io/en/latest/backends/vk.html) и здесь указаны два параметра:
+```python
+# sitewomen/settings.py
+SOCIAL_AUTH_VK_OAUTH2_KEY = ''
+SOCIAL_AUTH_VK_OAUTH2_SECRET = ''
+```
+Заполняем их требуемой информацией и дополнительно пропишем атрибут:
+```python
+# sitewomen/settings.py
+SOCIAL_AUTH_VK_OAUTH2_SCOPE = ['email']
+```
+для получения E-mail адреса пользователя.
+
+Далее, нам нужно прописать бэкенд для авторизации по ВК:
+```python
+# sitewomen/settings.py
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.vk.VKOAuth2',
+    'social_core.backends.github.GithubOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+    'users.authentication.EmailAuthBackend',
+]
+```
+И создать ссылку на странице авторизации пользователей. Открываем файл users/login.html и добавляем в него следующие строчки:
+```html
+<!-- login.html -->
+<p>
+    <a href="{% url 'social:begin' 'github' %}"><img src="/media/social-auth/github.png"></a>
+    <a href="{% url 'social:begin' 'vk-oauth2' %}"><img src="/media/social-auth/vk.png"></a>
+</p>
+```
