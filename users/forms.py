@@ -84,12 +84,12 @@ class ProfileUserForm(forms.ModelForm):
 
     Атрибуты:\n
     username - VARCHAR - логин пользователя, запрещено для изменения (disabled=True);\n
-    email - VARCHAR - почта пользователя, запрещена для изменений;\n
+    email - VARCHAR - почта пользователя, запрещена для изменений, необязательное поле;\n
     this_year - int - сегодняшний год;\n
     date_birth - DATETIME - дата рождения.
     """
     username = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='Логин')
-    email = forms.CharField(disabled=True, widget=forms.TextInput(attrs={'class': 'form-input'}), label='E-mail')
+    email = forms.CharField(disabled=True, required=False, widget=forms.TextInput(attrs={'class': 'form-input'}), label='E-mail')
     this_year = datetime.date.today().year
     date_birth = forms.DateTimeField(widget=forms.SelectDateWidget(years=tuple(range(this_year-5, this_year-100, -1))),
                                      label='Дата рождения')
