@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-hgqe908f-+$58m@$(pi^lto%!x%^3&2@du*u9i51(_fhy(-^an
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Переменная служит для более удобной отладки сайта, для боевого сервера её следует отключить.
 
-ALLOWED_HOSTS = ['127.0.0.1']  # Здесь требуется указывать разрешённые хосты, когда мы будем заселять сайт на сервер.
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'sitewomen.ru']  # Здесь требуется указывать разрешённые хосты, когда мы
+# будем заселять сайт на сервер.
 
 INTERNAL_IPS = ['127.0.0.1']  # Добавили коллекцию внутренних IP (в т.ч. для django debug toolbar).
 
