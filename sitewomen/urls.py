@@ -30,6 +30,7 @@ urlpatterns = [
     path('users/', include('users.urls', namespace='users')),  # namespace - пространство имён для маршрутов users.
     # Таким образом, чтобы обратиться к функции приложения нужно прописать - <пространство имён>:<имя пути>.
     path('__debug__/', include('debug_toolbar.urls')),  # Подключаем url для django debug toolbar.
+    path('social-auth/', include('social_django.urls', namespace='social')),  # Подключаем OAuth 2.0.
 ]
 
 if settings.DEBUG:  # Связываем URL с маршрутом в режиме отладки (в боевом режиме сервер и так будет иметь необходимые

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     # находились, мы прописали здесь само приложение. Если бы мы этого не сделали, то шаблоны не отработали.
     'users.apps.UsersConfig',
     'debug_toolbar',  # Настройка для работы с инструментом django debug toolbar.
+    'social_django',  # Настройка OAuth 2.0.
 ]
 
 MIDDLEWARE = [
@@ -170,6 +171,7 @@ LOGIN_URL = 'users:login'  # определяет URL-адрес, на кото�
 LOGOUT_REDIRECT_URL = 'home'  # задаёт URL-адрес, на который перенаправляется пользователь после выхода.
 
 AUTHENTICATION_BACKENDS = [  # Указываем модули бэкенда для авторизации.
+    'social_core.backends.github.GithubOAuth2',
     'django.contrib.auth.backends.ModelBackend',
     'users.authentication.EmailAuthBackend',
 ]
