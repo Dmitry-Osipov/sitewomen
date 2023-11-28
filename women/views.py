@@ -1,5 +1,5 @@
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect, HttpRequest
 from django.shortcuts import render, get_object_or_404
@@ -130,7 +130,7 @@ class WomenCategory(DataMixin, ListView):
         return self.get_mixin_context(context, title='Категория - ' + cat.name, cat_selected=cat.pk)
 
 
-class AddPage(LoginRequiredMixin, DataMixin, CreateView):
+class AddPage(PermissionRequiredMixin, LoginRequiredMixin, DataMixin, CreateView):
     """
     Класс представления служит для добавления статьи про известную женщину. Страница добавления статьи доступна только
     авторизованным пользователям.
@@ -139,7 +139,8 @@ class AddPage(LoginRequiredMixin, DataMixin, CreateView):
     form_class - forms.ModelForm - переменная ссылается на класс формы;\n
     template_name - str - маршрут для отображения страницы;\n
     success_url - Callable - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
-    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
+    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.);\n
+    permission_required - str - разрешение на получение доступа к странице.
     """
     form_class = AddPostForm  # Можно указать аналог этого атрибута атрибутами ниже:
     # model = Women - model - models.Model - связанная модель.
@@ -149,6 +150,7 @@ class AddPage(LoginRequiredMixin, DataMixin, CreateView):
     # модели.
     title_page = 'Добавление статьи'
     # login_url = 'home' - страница перенаправления для неавторизованных пользователей.
+    permission_required = 'women.add_women'  # Синтаксис: <приложение>.<действие>_<таблица>.
 
     def form_valid(self, form: forms.ModelForm) -> HttpResponseRedirect:
         """
@@ -162,7 +164,7 @@ class AddPage(LoginRequiredMixin, DataMixin, CreateView):
         return super().form_valid(form)
 
 
-class UpdatePage(DataMixin, UpdateView):
+class UpdatePage(PermissionRequiredMixin, DataMixin, UpdateView):
     """
     Класс представления служит для обновления статьи про известную женщину.
 
@@ -171,15 +173,18 @@ class UpdatePage(DataMixin, UpdateView):
     fields - tuple - поля, которые будут отображены в форме;\n
     template_name - str - маршрут для отображения страницы;\n
     success_url - Callable - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
-    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.).
+    extra_context - dict - контекст для отображения на странице (например, меню, заголовок и т.п.);\n
+    permission_required - str - разрешение на получение доступа к странице.
     """
     model = Women
     fields = ('title', 'content', 'photo', 'is_published', 'cat')
     template_name = 'women/addpage.html'
     success_url = reverse_lazy('home')
     title_page = 'Редактирование статьи'
+    permission_required = 'women.change_women'
 
 
+@permission_required(perm='women.view_women', raise_exception=True)
 def contact(request: HttpRequest) -> HttpResponse:
     """
     Функция представления служит для обратной связи разработчику сайта.
