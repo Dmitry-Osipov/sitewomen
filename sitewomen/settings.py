@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'debug_toolbar',  # Настройка для работы с инструментом django debug toolbar.
     'social_django',  # Настройка OAuth 2.0.
+    'captcha',  # Добавил простую каптчу.
 ]
 
 MIDDLEWARE = [

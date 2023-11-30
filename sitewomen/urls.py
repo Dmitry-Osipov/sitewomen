@@ -31,6 +31,7 @@ urlpatterns = [
     # Таким образом, чтобы обратиться к функции приложения нужно прописать - <пространство имён>:<имя пути>.
     path('__debug__/', include('debug_toolbar.urls')),  # Подключаем url для django debug toolbar.
     path('social-auth/', include('social_django.urls', namespace='social')),  # Подключаем OAuth 2.0.
+    path('captcha/', include('captcha.urls')),  # Подключил каптчу.
 ]
 
 if settings.DEBUG:  # Связываем URL с маршрутом в режиме отладки (в боевом режиме сервер и так будет иметь необходимые

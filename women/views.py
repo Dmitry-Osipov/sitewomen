@@ -5,7 +5,7 @@ from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRespons
 from django.shortcuts import render, get_object_or_404
 from django.template.defaultfilters import slugify
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, FormView
 
 from .forms import *
 from .models import *
@@ -184,25 +184,30 @@ class UpdatePage(PermissionRequiredMixin, DataMixin, UpdateView):
     permission_required = 'women.change_women'
 
 
-@permission_required(perm='women.view_women', raise_exception=True)
-def contact(request: HttpRequest) -> HttpResponse:
+class ContactFormView(LoginRequiredMixin, DataMixin, FormView):
     """
-    Функция представления служит для обратной связи разработчику сайта.
+    Класс представления служит для отображения страницы обратной связи.
 
-    :param request: Запрос пользователя.
-    :return: Текст про обратную связь.
+    Атрибуты:\n
+    form_class - forms.ModelForm - переменная ссылается на класс формы;\n
+    template_name - str - маршрут для отображения страницы;\n
+    success_url - Callable - полный маршрут страницы перенаправления (в случае успешной обработки формы);\n
+    title_page - str - заголовок страницы.
     """
-    return HttpResponse('Обратная связь')
+    form_class = ContactForm
+    template_name = 'women/contact.html'
+    success_url = reverse_lazy('home')
+    title_page = 'Обратная связь'
 
+    def form_valid(self, form):
+        """
+        Метод выводит сообщение пользователя с переходом на главную страницу.
 
-def login(request: HttpRequest) -> HttpResponse:
-    """
-    Функция представления служит для авторизации пользователя на сайте.
-
-    :param request: Запрос пользователя.
-    :return: Текст про авторизацию.
-    """
-    return HttpResponse('Авторизация')
+        :param form: Проверенная и заполненная форма добавления новой статьи.
+        :return: Заполненная форма.
+        """
+        print(form.cleaned_data)
+        return super().form_valid(form)
 
 
 class TagPostList(DataMixin, ListView):
@@ -351,6 +356,17 @@ def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotF
 #     }
 #
 #     return render(request, 'women/post.html', context=data)
+#
+#
+# @permission_required(perm='women.view_women', raise_exception=True)
+# def contact(request: HttpRequest) -> HttpResponse:
+#     """
+#     Функция представления служит для обратной связи разработчику сайта.
+#
+#     :param request: Запрос пользователя.
+#     :return: Текст про обратную связь.
+#     """
+#     return HttpResponse('Обратная связь')
 
 
 # Все функции представления ниже нужны только для отображения базовых возможностей Django.

@@ -1,3 +1,4 @@
+from captcha.fields import CaptchaField
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct import deconstructible
@@ -91,3 +92,10 @@ class UploadFileForm(forms.Form):
     file - графический файл.
     """
     file = forms.ImageField(label='Изображение')
+
+
+class ContactForm(forms.Form):
+    name = forms.CharField(max_length=255, label='Имя')
+    email = forms.EmailField(label='E-mail')
+    content = forms.CharField(widget=forms.Textarea(attrs={'cols': 60, 'rows': 10}), label='Сообщение')
+    captcha = CaptchaField()
