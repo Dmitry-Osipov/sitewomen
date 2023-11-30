@@ -8597,3 +8597,124 @@ class GetPagesTestCase(TestCase):
 Мы здесь вначале выбираем 1-ю запись из таблицы Women по id, затем, формируем URL-адрес отображения этой статьи. Запрашиваем содержимое через GET-запрос и сравниваем контент объекта w таблицы women с контентом, переданным в шаблон поста.
 
 Запускаем тест, видим, что он успешно проходит. Вот так достаточно просто можно использовать данные из таблиц БД в тестах.
+### 83. Тестирование формы регистрации.
+На данный момент мы с вами научились создавать простые тесты с использованием БД. На этом занятии продолжим углубляться в тему и посмотрим, как можно создавать тесты для оценки корректности работы форм на примере формы регистрации пользователей.
+
+Так как функционал регистрации реализован в приложении users, то тест будем писать в файле users/tests.py. Откроем его и первым делом в классе с именем RegisterUserTestCase проверим корректность отображения самой формы при GET-запросе:
+```python
+# users/tests.py
+class RegisterUserTestCase(TestCase):
+    def test_form_registration_get(self):
+        path = reverse('users:register')
+        response = self.client.get(path)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'users/register.html')
+```
+Здесь все должно быть вам уже знакомо. Поэтому перейдем сразу к следующему тесту, который будет проверять корректность регистрации пользователя:
+```python
+# users/tests.py
+...
+    def test_user_registration_success(self):
+        data = {
+            'username': 'user_1',
+            'email': 'user1@sitewomen.ru',
+            'first_name': 'Sergey',
+            'last_name': 'Balakirev',
+            'password1': '12345678Aa',
+            'password2': '12345678Aa',
+        }
+        user_model = get_user_model()
+
+        path = reverse('users:register')
+        response = self.client.post(path, data)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+        self.assertRedirects(response, reverse('users:login'))
+        self.assertTrue(user_model.objects.filter(username=data['username']).exists())
+...
+```
+Вначале создается словарь с данными для пользователя. Ключами словаря являются поля формы, а значениями – данные соответствующих полей. Далее, нам понадобится модель пользователей. Обратите внимание, что мы получаем ее с помощью встроенной в Django функции get_user_model(), так как в нашем проекте используется не стандартная модель, а измененная. Вообще, всегда лучше к модели пользователя обращаться через эту функцию. После этого мы делаем POST-запрос, имитируя отправку данных от клиента к серверу с заполненными полями формы. Объект response будет содержать ответ сервера после отправки формы регистрации. Так как мы ожидаем, что пользователь успешно зарегистрируется, то должно быть выполнено перенаправление на страницу авторизации и, кроме того, в таблице users должна появиться запись с зарегистрированным пользователем. Все это проверяется с помощью assert-функций.
+
+После запуска тест должен успешно выполниться.
+
+Давайте, теперь посмотрим, как можно тестировать ошибки при регистрации. Создадим еще один метод со следующим содержимым: 
+```python
+# users/tests.py
+...
+    def test_user_registration_password_error(self):
+        data = {
+            'username': 'user_1',
+            'email': 'user1@sitewomen.ru',
+            'first_name': 'Sergey',
+            'last_name': 'Balakirev',
+            'password1': '12345678Aa',
+            'password2': '12345678A',
+        }
+
+        path = reverse('users:register')
+        response = self.client.post(path, data)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertContains(response, "Введенные пароли не совпадают")
+...
+```
+Вначале у нас снова идет словарь data, затем, отправка заполненной формы на сервер. Но, так как пароли не совпадают, то должна возникать ошибка и перенаправление не происходить. То есть, код ответа страницы должен быть равен 200. Также на странице формы должно присутствовать сообщение об ошибке «Введенные пароли не совпадают».
+
+Если сейчас запустить тесты, то они успешно выполнятся. Но, смотрите, если добавить в метод assertContains() параметр html=True:
+```python
+self.assertContains(response, "Введенные пароли не совпадают", html=True)
+```
+то возникнет ошибка отсутствия сообщения. Это связано с тем, что полное сообщение включает в себя еще и точку в конце:
+
+"Введенные пароли не совпадают."
+
+Если мы ее пропишем, то ошибка исчезнет. Это связано с тем, что при параметре html=True проверяется вхождение на уровне всего содержимого HTML-тэгов. И в форме регистрации это сообщение об ошибке составляет содержимое тега абзаца. Поэтому оно целиком должно присутствовать при сравнении.
+
+В нашем случае параметр html=True особого смысла не имеет и его можно опустить.
+
+Итак, в наших последних двух тестах наблюдается явное ненужное дублирование кода в виде определения словаря data. Давайте его вынесем в метод setUp(), который вызывается перед каждым тестом:
+```python
+# users/tests.py
+...
+    def setUp(self):
+        self.data = {
+            'username': 'user_1',
+            'email': 'user1@sitewomen.ru',
+            'first_name': 'Sergey',
+            'last_name': 'Balakirev',
+            'password1': '12345678Aa',
+            'password2': '12345678Aa',
+        }
+...
+```
+А в методах тестирования мы будем обращаться к переменной self.data. Дополнительно в методе test_user_registration_password_error изменим значение ключа password2:
+```python
+# users/tests.py
+...
+    def test_user_registration_password_error(self):
+        self.data['password2'] = '12345678A'
+        path = reverse('users:register')
+        response = self.client.post(path, self.data)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertContains(response, "Введенные пароли не совпадают.")
+...
+```
+Мы получили гораздо более удобное описание наших тестов.
+
+Создадим еще один тест, который бы проверял, что два одинаковых пользователя с одним и тем же логином (username) создавать нельзя:
+```python
+# users/tests.py
+...
+    def test_user_registration_user_exists_error(self):
+        user_model = get_user_model()
+        user_model.objects.create(username=self.data['username'])
+
+        path = reverse('users:register')
+        response = self.client.post(path, self.data)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertContains(response, "Пользователь с таким именем уже существует.")
+...
+```
+Вначале мы получаем модель пользователя, затем, в тестовой БД создаем нового пользователя, а после этого, с помощью формы регистрации еще раз указываем тот же username. В итоге, должна возникнуть ошибка и отобразиться в текущей форме регистрации. Именно это проверяется в двух последних assert-методах теста.
+
+После запуска должны увидеть прохождение всех четырех тестов.
+
+Вот так, достаточно просто можно тестировать отображение страниц и отправку форм на уровне unittest.
