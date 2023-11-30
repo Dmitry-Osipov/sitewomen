@@ -28,7 +28,7 @@ class WomenHome(DataMixin, ListView):
     model = Women
     template_name = 'women/index.html'
     context_object_name = 'posts'
-    title_page = 'Главая страница'
+    title_page = 'Главная страница'
     cat_selected = 0
 
     def get_queryset(self):
