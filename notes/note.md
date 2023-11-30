@@ -8026,3 +8026,105 @@ python3 manage.py createsuperuser
 python3 manage.py loaddata db.json
 ```
 Все, теперь наш сайт работает под управлением СУБД PostgreSQL и все данные при этом были успешно перенесены. По аналогии можно подключать любые другие СУБД, поддерживаемые фреймворком Django.
+### 78. Использование капчи (Captcha).
+На данный момент у нас с вами получился полноценный сайт, но одна страница все еще не сделана – это форма обратной связи. Давайте ее добавим. Для начала вместо функции contact пропишем следующий класс представления (в файле women/views.py):
+```python
+# women/views.py
+class ContactFormView(LoginRequiredMixin, DataMixin, FormView):
+    form_class = ContactForm
+    template_name = 'women/contact.html'
+    success_url = reverse_lazy('home')
+    title_page = "Обратная связь"
+
+    def form_valid(self, form):
+        print(form.cleaned_data)
+        return super().form_valid(form)
+```
+Здесь все стандартно: определяем атрибуты form_class, template_name и success_url, а также метод form_valid(). Он нам пригодится, чтобы увидеть возможность обработки данных формы. Если пользователь все поля заполнил корректно, то будет вызван метод  form_valid() и в консоли увидим словарь с данными формы.
+
+Далее, в файле women/forms.py пропишем класс формы ContactForm:
+```python
+# women/forms.py
+class ContactForm(forms.Form):
+    name = forms.CharField(label='Имя', max_length=255)
+    email = forms.EmailField(label='Email')
+    content = forms.CharField(widget=forms.Textarea(attrs={'cols': 60, 'rows': 10}))
+```
+Здесь тоже все так, как мы делали ранее, просто определены три поля для ввода.
+
+Осталось создать шаблон с именем contact.html и следующим содержимым:
+```html
+<!-- contact.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{title}}</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-error">{{ form.non_field_errors }}</div>
+
+{% for f in form %}
+<p><label class="form-label" for="{{ f.id_for_label }}">{{f.label}}: </label>{{ f }}</p>
+<div class="form-error">{{ f.errors }}</div>
+{% endfor %}
+
+    <button type="submit">Отправить</button>
+</form>
+
+{% endblock %}
+```
+И в файле women/urls.py свяжем маршрут contact с классом ContactFormView:
+```python
+# women/urls.py
+...
+    path('contact/', views.ContactFormView.as_view(), name='contact'),
+...
+```
+Все, страница готова и полностью функциональна. Как вы понимаете, мы ее сделали не случайно. Следующим шагом добавим к этой форме так называемую капчу, то есть, графическую картинку с кодом, который нужно ввести, чтобы отправить данные формы на сервер. Это часто делают для защиты от ботов и на данный момент необходимый элемент всех открытых, публичных форм. Давайте это сделаем.
+
+Вариантов для капчи множество и для фреймворка Django был разработан специальный модуль, который называется:
+
+django-simple-captcha
+
+Для его установки достаточно прописать команду:
+```shell
+pip3 install django-simple-captcha
+```
+и модуль готов к использованию. Ниже в описании модуля есть ссылка на [документацию](https://django-simple-captcha.readthedocs.io/en/latest/) где описывается как использовать этот пакет в своем приложении. Сделаем это. Вначале в файле settings.py пропишем этот модуль в списке установленных приложений:
+```python
+# sitewomen/settings.py
+INSTALLED_APPS = [
+...
+    'captcha',
+...
+]
+```
+Далее, по документации нам нужно выполнить миграцию:
+```shell
+python3 manage.py migrate
+```
+Затем, в корневой список маршрутов добавим строчку:
+```python
+# sitewomen/urls.py
+urlpatterns = [
+...
+    path('captcha/', include('captcha.urls')),
+...
+]
+```
+Все, привязка модуля к нашему приложению завершена и мы можем использовать ее в нашей форме. Для этого в файле women/forms.py импортируем класс для формирования поля капчи и в классе ContactForm пропишем его:
+```python
+# women/forms.py
+class ContactForm...:
+    ...
+    captcha = CaptchaField()
+```
+По идее, это все, по умолчанию наша форма теперь имеет капчу и давайте посмотрим как все это будет работать. Переходим в браузер, обновляем страницу обратной связи и видим дополнительно еще и капчу. Соответственно, она будет меняться при каждом обновлении страницы.
+
+Если нужен другой вид капчи, оформить ее в своих стилях, то для этого используется дополнительно класс CaptchaTextInput, пример представлен в [документации](https://django-simple-captcha.readthedocs.io/en/latest/advanced.html).
+
+Кроме того, если требуется поменять шрифт, или его размер, цвета и прочее, то можно прописывать соответствующие переменные (приведены там же) в файле settings.py.
+
+Вот так в самом простом варианте можно подключать капчу к своим формам.
