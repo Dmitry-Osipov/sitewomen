@@ -1,4 +1,5 @@
 from django.urls import path, register_converter
+from django.views.decorators.cache import cache_page
 
 from .converters import *
 from .views import *
@@ -9,7 +10,7 @@ register_converter(FourDigitYearConverter, 'year4')  # Регистрируем 
 # сам конвертер, второй аргумент - имя конвертера для urlpatterns.
 
 urlpatterns = [  # В этой коллекции можно прописать сколько угодно маршрутов для страниц отображения клиенту.
-    path('', WomenHome.as_view(), name='home'),
+    path('', WomenHome.as_view(), name='home'),  # Кэшируем страницу на 30 секунд.
     path('about/', about, name='about'),
     path('addpage/', AddPage.as_view(), name='add_page'),
     path('contact/', ContactFormView.as_view(), name='contact'),

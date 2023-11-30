@@ -6,6 +6,7 @@ from django.shortcuts import render, get_object_or_404
 from django.template.defaultfilters import slugify
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, FormView
+from django.core.cache import cache
 
 from .forms import *
 from .models import *
@@ -32,11 +33,17 @@ class WomenHome(DataMixin, ListView):
 
     def get_queryset(self):
         """
-        Метод вызывает выборку всех опубликованных записей, которые содержат поле категории.
+        Метод вызывает выборку всех опубликованных записей, которые содержат поле категории. Метод кэширует все записи
+        на 60 секунд.
 
         :return: Коллекция отобранных записей.
         """
-        return Women.published.all().select_related('cat')
+        w_lst = cache.get('women_posts')
+        if not w_lst:
+            w_lst = Women.published.all().select_related('cat')
+            cache.set('women_posts', w_lst, 60)
+
+        return w_lst
 
 
 @login_required  # Дополнительно можно указать параметр login_url для изменения страницы перенаправления.
