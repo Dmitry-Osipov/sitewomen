@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'debug_toolbar',  # Настройка для работы с инструментом django debug toolbar.
     'social_django',  # Настройка OAuth 2.0.
     'captcha',  # Добавил простую каптчу.
+    'django.contrib.sites',
+    'django.contrib.sitemaps',
 ]
 
 MIDDLEWARE = [
@@ -114,8 +116,9 @@ DATABASES = {
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379',
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        # 'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        # 'LOCATION': 'redis://127.0.0.1:6379',
     }
 }
 
@@ -235,3 +238,5 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
 )
+
+SITE_ID = 1

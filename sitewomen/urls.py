@@ -17,9 +17,17 @@ Including another URLconf
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
-from sitewomen import settings
+from django.contrib.sitemaps.views import sitemap
+from django.views.decorators.cache import cache_page
 
+from sitewomen import settings
 from women import views
+from women.sitemaps import *
+
+sitemaps = {  # Словарь будем передавать в функцию представления sitemap.
+    'posts': PostSitemap,
+    'cats': CategorySitemap,
+}
 
 # Важно заметить, что как только мы добавим хотя бы 1 маршрут, то тестовая стандартная страница Django станет недоступна.
 urlpatterns = [
@@ -32,6 +40,8 @@ urlpatterns = [
     path('__debug__/', include('debug_toolbar.urls')),  # Подключаем url для django debug toolbar.
     path('social-auth/', include('social_django.urls', namespace='social')),  # Подключаем OAuth 2.0.
     path('captcha/', include('captcha.urls')),  # Подключил каптчу.
+    path('sitemap.xml', cache_page(86400)(sitemap), {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    # Выше формируем карту сайта.
 ]
 
 if settings.DEBUG:  # Связываем URL с маршрутом в режиме отладки (в боевом режиме сервер и так будет иметь необходимые
