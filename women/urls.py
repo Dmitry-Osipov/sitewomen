@@ -11,7 +11,7 @@ register_converter(FourDigitYearConverter, 'year4')  # Регистрируем 
 
 urlpatterns = [  # В этой коллекции можно прописать сколько угодно маршрутов для страниц отображения клиенту.
     path('', WomenHome.as_view(), name='home'),  # Кэшируем страницу на 30 секунд.
-    path('about/', about, name='about'),
+    path('about/', AboutPage.as_view(), name='about'),
     path('addpage/', AddPage.as_view(), name='add_page'),
     path('contact/', ContactFormView.as_view(), name='contact'),
     path('post/<slug:post_slug>/', ShowPost.as_view(), name='post'),

@@ -5,7 +5,7 @@ from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRespons
 from django.shortcuts import render, get_object_or_404
 from django.template.defaultfilters import slugify
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, FormView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, FormView, TemplateView
 from django.core.cache import cache
 
 from .forms import *
@@ -46,25 +46,10 @@ class WomenHome(DataMixin, ListView):
         return w_lst
 
 
-@login_required  # Дополнительно можно указать параметр login_url для изменения страницы перенаправления.
-def about(request: HttpRequest) -> HttpResponse:
-    """
-    Функция представления служит для отображения страницы о сайте. Страница доступна только для авторизованных клиентов.
-
-    :param request: Запрос пользователя.
-    :return: Страница загрузки графического файла на машину.
-    """
-    contact_list = Women.published.all()  # Получаем список всех статей.
-    paginator = Paginator(contact_list, 3)  # Создаём класс пагинации.
-    page_number = request.GET.get('page')  # Получаем номер текущей страницы.
-    page_obj = paginator.get_page(page_number)  # Получаем конкретную страницу.
-
-    data = {
-        'title': 'О сайте',
-        'page_obj': page_obj,
-    }
-
-    return render(request, 'women/about.html', context=data)
+class AboutPage(DataMixin, TemplateView):
+    template_name = 'women/about.html'
+    title_page = 'О сайте'
+    extra_context = {'sub_title': 'Внесите свою историю!', 'contact': 'https://t.me/The_Real_DO'}
 
 
 class ShowPost(DataMixin, DetailView):
@@ -374,6 +359,27 @@ def page_not_found(request: HttpRequest, exception: Http404) -> HttpResponseNotF
 #     :return: Текст про обратную связь.
 #     """
 #     return HttpResponse('Обратная связь')
+#
+#
+# @login_required  # Дополнительно можно указать параметр login_url для изменения страницы перенаправления.
+# def about(request: HttpRequest) -> HttpResponse:
+#     """
+#     Функция представления служит для отображения страницы о сайте. Страница доступна только для авторизованных клиентов.
+#
+#     :param request: Запрос пользователя.
+#     :return: Страница загрузки графического файла на машину.
+#     """
+#     contact_list = Women.published.all()  # Получаем список всех статей.
+#     paginator = Paginator(contact_list, 3)  # Создаём класс пагинации.
+#     page_number = request.GET.get('page')  # Получаем номер текущей страницы.
+#     page_obj = paginator.get_page(page_number)  # Получаем конкретную страницу.
+#
+#     data = {
+#         'title': 'О сайте',
+#         'page_obj': page_obj,
+#     }
+#
+#     return render(request, 'women/about.html', context=data)
 
 
 # Все функции представления ниже нужны только для отображения базовых возможностей Django.
